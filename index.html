@@ -209,7 +209,7 @@
   }
   @media (min-width: 1280px) { #mobile-bar { display: none !important; } html[data-page="calc"] main#main { padding-bottom: 48px; } }
   /* Visibilidad de piezas de la estructura (estas clases propias mandan sobre las de Tailwind) */
-  .nav-item.hidden, .user-chip.hidden, .icon-44.hidden { display: none; }
+  .nav-item.hidden, .user-chip.hidden, .icon-44.hidden, .nav-badge.hidden, .bnav-badge.hidden { display: none; }
   #top-new, #sb-collapse { display: none; }
   @media (min-width: 640px) { #top-new { display: inline-flex; } }
   @media (min-width: 1024px) { .bnav, #sb-open, #sb-close, #top-install { display: none; } #sb-collapse { display: grid; } }
@@ -499,6 +499,20 @@
   @media (max-width: 639px) { #f-box:not(.is-open) .f-adv { display: none; } }
   #f-more-n { color: var(--c-acc-text); }
   #f-box.is-open .f-chev { transform: rotate(180deg); }
+  /* Fase 3 · Perfil: foto, iniciales y recorte */
+  .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
+  .avatar .dot { z-index: 1; }
+  .avatar-xl { width: 96px; height: 96px; font-size: 32px; }
+  .card.card-warn { border-color: color-mix(in srgb, #f59e0b 55%, transparent); box-shadow: inset 4px 0 0 #f59e0b; }
+  .nav-ava { display: block; width: 24px; height: 24px; flex-shrink: 0; overflow: hidden; border-radius: 99px; box-shadow: 0 0 0 1.5px currentColor; }
+  .nav-ava img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .crop-stage { position: relative; width: min(100%, 320px); aspect-ratio: 1 / 1; margin-inline: auto; overflow: hidden; border-radius: 16px; background: #000; touch-action: none; cursor: grab; user-select: none; }
+  .crop-stage.is-drag { cursor: grabbing; }
+  .crop-stage canvas { display: block; width: 100%; height: 100%; }
+  .crop-ring { position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 999px rgb(0 0 0 / .5); outline: 2px solid rgb(255 255 255 / .9); outline-offset: -2px; pointer-events: none; }
+  .crop-stage:focus-visible { outline: 3px solid var(--c-acc); outline-offset: 3px; }
+  .crop-zoom { display: block; height: 44px; accent-color: var(--c-acc); cursor: pointer; }
+  #profile-card :disabled, #acct-password :disabled, #modal-root [data-crop]:disabled { opacity: .55; cursor: not-allowed; }
 </style>
 </head>
 <body class="min-h-screen font-sans text-zinc-200 antialiased">
@@ -1134,9 +1148,7 @@
 
   <!-- ============ PERFIL ============ -->
   <section data-view="profile" class="view hidden">
-    <div class="mx-auto max-w-3xl space-y-6">
-      <div class="card p-6" id="profile-card"></div>
-    </div>
+    <div class="mx-auto max-w-3xl space-y-6" id="profile-card"></div>
   </section>
 
   <!-- ============ AJUSTES ============ -->
@@ -1191,6 +1203,7 @@
   <section data-view="account" class="view hidden">
     <div class="mx-auto max-w-3xl space-y-6">
       <div class="card p-6" id="acct-session"></div>
+      <div id="acct-password" class="hidden"></div>
       <div class="card p-6">
         <h2 class="h2">Copia de seguridad</h2>
         <p class="sub" id="acct-backup"></p>
@@ -1260,7 +1273,7 @@
 'use strict';
 
 /* =========================================================
-   SureTrack · Registro y calculadora de surebets  (v8)
+   SureTrack · Registro y calculadora de surebets  (v9)
    Datos guardados en localStorage de este navegador.
    Formatos: cuotas y líneas con punto (2.10 · 4.5) · dinero con coma (49,40 €)
    ========================================================= */
@@ -4416,14 +4429,14 @@ function cloudStart() {
   el('acc-menu').addEventListener('click', e => {
     const b = e.target.closest('[data-acc]'); if (!b) return;
     toggleAccMenu(false);
-    ({ sync: () => cloudPull(true), logout: () => cloudLogout(false) })[b.dataset.acc]?.();
+    ({ profile: () => setTab('profile'), sync: () => cloudPull(true), logout: () => cloudLogout(false) })[b.dataset.acc]?.();
   });
   // No se llama a Supabase dentro del aviso de sesión (lo recomienda supabase-js): se deja para después
   CLOUD.client.auth.onAuthStateChange((ev, session) => setTimeout(() => cloudSession(ev, session), 0));
   document.addEventListener('visibilitychange', () => {
     if (!CLOUD.uid) return;
     if (document.visibilityState === 'hidden') { if (CLOUD.timer) { clearTimeout(CLOUD.timer); CLOUD.timer = null; cloudPush(); } }
-    else if (Date.now() - CLOUD.lastPull > 15000) cloudPull();
+    else { if (Date.now() - CLOUD.lastPull > 15000) cloudPull(); profPull(); }
   });
   window.addEventListener('online', () => { if (CLOUD.uid) cloudPull(true); });
   window.addEventListener('offline', () => { if (CLOUD.uid) cloudState('offline'); });
@@ -4436,14 +4449,15 @@ function cloudSession(ev, session) {
   const user = session && session.user, uid = user ? user.id : null;
   if (user && user.email) CLOUD.email = user.email;
   if (uid === CLOUD.uid) {
-    if (uid && (ev === 'INITIAL_SESSION' || ev === 'SIGNED_IN')) cloudPull();
+    if (uid && (ev === 'INITIAL_SESSION' || ev === 'SIGNED_IN')) { cloudPull(); profPull(); }
     cloudRender(); return;
   }
   const hadUser = !!CLOUD.uid;
   if (CLOUD.timer) { clearTimeout(CLOUD.timer); CLOUD.timer = null; }
   CLOUD.uid = uid; CLOUD.seq++; CLOUD.next = null; CLOUD.errMsg = '';
   swapData();
-  if (uid) { CLOUD.welcome = !hadUser; cloudPull(true); }
+  profLocal(); renderNavAvatar();
+  if (uid) { CLOUD.welcome = !hadUser; cloudPull(true); profPull(true); }
   else { cloudState('off'); if (hadUser) toast('Tu sesión ha caducado. Entra de nuevo para sincronizar.', 'info'); }
   cloudRender();
 }
@@ -4643,7 +4657,7 @@ async function cloudLogout(force) {
   const uid = CLOUD.uid;
   CLOUD.leaving = true; clearTimeout(CLOUD.timer); clearTimeout(CLOUD.retry);
   try { await CLOUD.client.auth.signOut({ scope: 'local' }); } catch (e) { console.warn('Nube:', e); }   // solo este dispositivo
-  lsDel(`${STORE_KEY}@${uid}`); lsDel(syncKey(uid)); lsDel(DRAFT_KEY);
+  lsDel(`${STORE_KEY}@${uid}`); lsDel(syncKey(uid)); lsDel(DRAFT_KEY); lsDel(profKey(uid));
   location.reload();
 }
 
@@ -4670,8 +4684,8 @@ function cloudRender() {
   }
   const st = CLOUD.state === 'off' ? 'sync' : CLOUD.state, at = syncMeta().at;
   const when = st === 'ok' && at ? ` · ${fmtSyncAt(at)}` : '';
-  const name = CLOUD.email ? CLOUD.email.split('@')[0] : 'Cuenta';
-  b.innerHTML = `<span class="avatar">${esc(initials(name))}<span class="dot ${SYNC_DOT[st]}"></span></span><span class="sb-label min-w-0"><span class="block truncate font-semibold text-zinc-100">${esc(name)}</span><span class="block truncate text-[14px] text-zinc-500">${esc(SYNC_TXT[st] + when)}</span></span>`;
+  const name = displayName();
+  b.innerHTML = `<span class="avatar">${avatarInner()}<span class="dot ${SYNC_DOT[st]}"></span></span><span class="sb-label min-w-0"><span class="block truncate font-semibold text-zinc-100">${esc(name)}</span><span class="block truncate text-[14px] text-zinc-500">${esc(SYNC_TXT[st] + when)}</span></span>`;
   b.title = `${CLOUD.email} · ${SYNC_TXT[st]}`; b.setAttribute('aria-label', `Tu cuenta: ${SYNC_TXT[st]}`);
   if (info) info.textContent = `Cuenta ${CLOUD.email} · ${SYNC_TXT[st]}${when}`;
   el('acc-menu').innerHTML = `
@@ -4682,6 +4696,7 @@ function cloudRender() {
       ${st === 'error' && CLOUD.errMsg ? `<div class="mt-2 text-[14px] leading-snug text-rose-300/90">${esc(CLOUD.errMsg)}</div>` : ''}
     </div>
     <div class="my-2 h-px bg-white/[0.06]"></div>
+    <button class="menu-item" data-acc="profile">Tu perfil</button>
     <button class="menu-item" data-acc="sync">${st === 'conflict' ? 'Resolver el conflicto' : 'Sincronizar ahora'}</button>
     <button class="menu-item" data-acc="logout">Cerrar sesión</button>`;
   if (typeof renderPageExtras === 'function' && ['account', 'profile'].includes(UI.tab)) renderPageExtras();
@@ -4883,6 +4898,365 @@ function pwaStart() {
 }
 
 // =========================================================
+//  PERFIL Y CUENTA (Fase 3)
+//  · Alias en la tabla «profiles» (una fila por usuario, id = su id de Supabase).
+//  · Foto en el bucket privado «avatars», carpeta <id>/: solo su dueño la ve y la cambia.
+//    Se recorta en cuadrado y se reduce a 256×256 en el navegador (JPEG < 100 KB) antes de subirla.
+//  · Copia local por usuario («suretrack.profile.v1@<id>»): la foto sale al instante y sin conexión.
+//  · Cambiar contraseña: se comprueba la actual y después se pone la nueva.
+//  Si falta el paso de Supabase (perfil_setup.sql), la app sigue funcionando igual y lo explica.
+// =========================================================
+const PROFILE_KEY = 'suretrack.profile.v1';
+const AVATAR_BUCKET = 'avatars', AVATAR_PX = 256, AVATAR_MAX = 100000, ALIAS_MAX = 30;
+const PROF = { uid: null, alias: '', path: null, img: '', state: 'idle', err: '', busy: false, pulledAt: 0 };
+const profKey = uid => `${PROFILE_KEY}@${uid}`;
+
+/* ---------- Copia local ---------- */
+function profLocal() {
+  const uid = CLOUD.uid || null;
+  if (PROF.uid === uid) return PROF;
+  Object.assign(PROF, { uid, alias: '', path: null, img: '', state: 'idle', err: '', pulledAt: 0 });
+  if (uid) { try { const c = JSON.parse(lsGet(profKey(uid)) || 'null'); if (c) Object.assign(PROF, { alias: c.alias || '', path: c.path || null, img: /^data:image\//.test(c.img || '') ? c.img : '' }); } catch {} }
+  return PROF;
+}
+function profSaveLocal() { if (PROF.uid) lsSet(profKey(PROF.uid), JSON.stringify({ alias: PROF.alias, path: PROF.path, img: PROF.img, at: new Date().toISOString() })); }
+
+/** Nombre que se muestra: alias, o la parte del email antes de la @. */
+function displayName() { profLocal(); return (CLOUD.uid && PROF.alias) || userName() || 'Cuenta'; }
+/** Contenido de un círculo de avatar: foto o iniciales. */
+function avatarInner() { profLocal(); return CLOUD.uid && PROF.img ? `<img src="${esc(PROF.img)}" alt="">` : esc(initials(displayName())); }
+
+/* ---------- Leer de Supabase ---------- */
+function profError(e) {
+  const c = String((e && (e.code || e.error || e.statusCode)) || ''), m = String((e && e.message) || e || '');
+  if (navigator.onLine === false || /fetch|network|load failed/i.test(m)) return { state: 'offline', msg: 'Sin conexión. Prueba cuando vuelvas a tener internet.' };
+  if (/PGRST205|42P01/.test(c) || /profiles/.test(m) && /exist|find|schema cache/i.test(m) || /bucket not found/i.test(m)) return { state: 'missing', msg: 'Falta activar el perfil en Supabase (archivo perfil_setup.sql).' };
+  if (/row-level security|42501|unauthorized|403/i.test(`${c} ${m}`)) return { state: 'error', msg: 'Supabase no deja guardarlo. Ejecuta de nuevo perfil_setup.sql.' };
+  if (/payload too large|413|maximum allowed size|exceeded the maximum/i.test(`${c} ${m}`)) return { state: 'error', msg: 'La foto pesa demasiado. Prueba con otra.' };
+  if (/mime|invalid_mime_type/i.test(m)) return { state: 'error', msg: 'Ese tipo de imagen no se admite. Usa una foto JPG o PNG.' };
+  if (/profiles_alias_largo/.test(m)) return { state: 'error', msg: `El alias puede tener como máximo ${ALIAS_MAX} caracteres.` };
+  return { state: 'error', msg: 'No se ha podido: ' + m };
+}
+
+async function profDownload(path) {
+  try {
+    const r = await CLOUD.client.storage.from(AVATAR_BUCKET).download(path);
+    if (r.error || !r.data) { console.warn('Perfil:', r.error); return null; }
+    return await blobToDataURL(r.data);
+  } catch (e) { console.warn('Perfil:', e); return null; }
+}
+
+async function profPull(force) {
+  if (!CLOUD.client || !CLOUD.uid || PROF.busy) return;
+  profLocal();
+  if (!force && Date.now() - PROF.pulledAt < 60000) return;
+  const uid = CLOUD.uid;
+  PROF.pulledAt = Date.now();
+  let r;
+  try { r = await CLOUD.client.from('profiles').select('alias, avatar_path').eq('id', uid); } catch (e) { r = { error: e }; }
+  if (uid !== CLOUD.uid || PROF.busy) return;
+  if (r.error) { const e = profError(r.error); PROF.state = e.state; PROF.err = e.msg; if (e.state !== 'offline') console.warn('Perfil:', r.error); profRender(); return; }
+  const row = (r.data && r.data[0]) || {};
+  PROF.alias = row.alias || '';
+  const path = row.avatar_path || null;
+  if (!path) { PROF.path = null; PROF.img = ''; }
+  else if (path !== PROF.path || !PROF.img) {
+    const img = await profDownload(path);
+    if (uid !== CLOUD.uid) return;
+    if (img) { PROF.img = img; PROF.path = path; }
+  }
+  PROF.state = 'ok'; PROF.err = '';
+  profSaveLocal(); profRender();
+}
+
+/* ---------- Guardar alias ---------- */
+async function profSaveAlias(raw) {
+  const alias = String(raw || '').replace(/\s+/g, ' ').trim().slice(0, ALIAS_MAX);
+  if (!CLOUD.client || !CLOUD.uid) return { error: 'Entra en tu cuenta para poner un alias.' };
+  const uid = CLOUD.uid;
+  let r;
+  try { r = await CLOUD.client.from('profiles').upsert({ id: uid, alias: alias || null }, { onConflict: 'id' }); } catch (e) { r = { error: e }; }
+  if (uid !== CLOUD.uid) return {};
+  if (r.error) { const e = profError(r.error); if (e.state === 'missing') { PROF.state = 'missing'; PROF.err = e.msg; profRender(); } return { error: e.msg }; }
+  PROF.alias = alias; PROF.state = 'ok'; PROF.err = '';
+  profSaveLocal(); profRender();
+  return { ok: true, alias };
+}
+
+/* ---------- Foto: elegir, recortar, reducir y subir ---------- */
+function blobToDataURL(b) { return new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = () => rej(fr.error); fr.readAsDataURL(b); }); }
+
+function pickPhoto() {
+  if (!CLOUD.client || !CLOUD.uid) { openAuth('login'); return; }
+  let inp = el('avatar-file');
+  if (!inp) {
+    inp = document.createElement('input');
+    Object.assign(inp, { type: 'file', accept: 'image/*', id: 'avatar-file', hidden: true });
+    inp.addEventListener('change', () => { const f = inp.files && inp.files[0]; inp.value = ''; if (f) openCropper(f); });
+    document.body.appendChild(inp);
+  }
+  inp.click();
+}
+
+async function loadImage(file) {
+  const url = URL.createObjectURL(file);
+  const img = new Image(); img.decoding = 'async';
+  try { img.src = url; await img.decode(); return img; }
+  finally { setTimeout(() => URL.revokeObjectURL(url), 0); }
+}
+
+async function openCropper(file) {
+  if (!/^image\//.test(file.type || 'image/')) { toast('Elige una imagen (JPG, PNG, HEIC…).', 'error'); return; }
+  if (file.size > 30 * 1024 * 1024) { toast('Esa imagen pesa más de 30 MB. Elige otra.', 'error'); return; }
+  let img;
+  try { img = await loadImage(file); } catch { toast('No se puede abrir esa imagen. Prueba con una foto JPG o PNG.', 'error'); return; }
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  if (!iw || !ih) { toast('No se puede abrir esa imagen.', 'error'); return; }
+  if (UI.closeModal) UI.closeModal();
+  const root = el('modal-root');
+  root.innerHTML = `
+    <div class="modal-backdrop fixed inset-0 z-[90] grid place-items-center bg-black/60 p-4 backdrop-blur-sm">
+      <div class="card modal-in max-h-[calc(100dvh-32px)] w-full max-w-md overflow-y-auto p-6 sm:p-8" role="dialog" aria-modal="true" aria-label="Recortar foto">
+        <h3 class="text-[24px] font-semibold leading-tight tracking-tight text-white">Recorta tu foto</h3>
+        <p class="mt-2 text-zinc-400">Arrastra para encuadrar y ajusta el zoom. Con teclado: flechas para mover, + y − para el zoom.</p>
+        <div class="crop-stage mt-6" id="crop-stage" tabindex="0" role="img" aria-label="Encuadre de la foto. Flechas para mover, más y menos para el zoom."><canvas id="crop-cv"></canvas><span class="crop-ring" aria-hidden="true"></span></div>
+        <label class="lbl mt-6" for="crop-zoom">Zoom</label>
+        <input id="crop-zoom" type="range" min="1" max="4" step="0.01" value="1" class="crop-zoom w-full">
+        <p id="crop-msg" class="mt-4 hidden text-[14px] leading-snug"></p>
+        <div class="mt-8 flex flex-wrap justify-end gap-3">
+          <button type="button" class="btn-ghost" data-crop="cancel">Cancelar</button>
+          <button type="button" class="btn-primary" data-crop="save">Guardar foto</button>
+        </div>
+      </div>
+    </div>`;
+  const stage = el('crop-stage'), cv = el('crop-cv'), zoom = el('crop-zoom'), msg = el('crop-msg'), save = root.querySelector('[data-crop="save"]');
+  const st = { z: 1, cx: iw / 2, cy: ih / 2 };
+  const base = () => stage.clientWidth / Math.min(iw, ih);                  // escala con zoom 1: la foto cubre el cuadro
+  const side = () => Math.min(iw, ih) / st.z;                              // lado del recorte en píxeles de la foto
+  const clamp = () => { const s = side() / 2; st.cx = Math.min(Math.max(st.cx, s), iw - s); st.cy = Math.min(Math.max(st.cy, s), ih - s); };
+  const draw = () => {
+    const W = stage.clientWidth, dpr = window.devicePixelRatio || 1, px = Math.max(1, Math.round(W * dpr));
+    if (cv.width !== px) { cv.width = px; cv.height = px; }
+    clamp(); const s = side(), c = cv.getContext('2d');
+    c.imageSmoothingQuality = 'high';
+    c.clearRect(0, 0, px, px); c.drawImage(img, st.cx - s / 2, st.cy - s / 2, s, s, 0, 0, px, px);
+  };
+  const setZoom = z => { st.z = Math.min(4, Math.max(1, z)); zoom.value = String(st.z); draw(); };
+  const move = (dx, dy) => { const k = base() * st.z; st.cx -= dx / k; st.cy -= dy / k; draw(); };
+  // Arrastrar con ratón o dedo
+  let drag = null;
+  stage.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY }; stage.setPointerCapture(e.pointerId); stage.classList.add('is-drag'); });
+  stage.addEventListener('pointermove', e => { if (!drag) return; move(e.clientX - drag.x, e.clientY - drag.y); drag = { x: e.clientX, y: e.clientY }; });
+  const end = () => { drag = null; stage.classList.remove('is-drag'); };
+  stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
+  stage.addEventListener('wheel', e => { e.preventDefault(); setZoom(st.z * (e.deltaY < 0 ? 1.08 : 1 / 1.08)); }, { passive: false });
+  stage.addEventListener('keydown', e => {
+    const k = { ArrowLeft: [12, 0], ArrowRight: [-12, 0], ArrowUp: [0, 12], ArrowDown: [0, -12] }[e.key];
+    if (k) { e.preventDefault(); move(k[0], k[1]); }
+    else if (e.key === '+' || e.key === '=') { e.preventDefault(); setZoom(st.z + 0.1); }
+    else if (e.key === '-' || e.key === '−') { e.preventDefault(); setZoom(st.z - 0.1); }
+  });
+  zoom.addEventListener('input', () => setZoom(Number(zoom.value)));
+  const onResize = () => draw();
+  window.addEventListener('resize', onResize);
+  const onKey = e => { if (e.key === 'Escape' && !PROF.busy) close(); };
+  const close = () => { root.innerHTML = ''; document.removeEventListener('keydown', onKey); window.removeEventListener('resize', onResize); UI.closeModal = null; };
+  UI.closeModal = close;
+  document.addEventListener('keydown', onKey);
+  root.querySelector('.modal-backdrop').addEventListener('click', e => { if (e.target.classList.contains('modal-backdrop') && !PROF.busy) close(); });
+  root.querySelector('[data-crop="cancel"]').addEventListener('click', () => { if (!PROF.busy) close(); });
+  save.addEventListener('click', async () => {
+    if (PROF.busy) return;
+    const say = (t, ok) => { msg.textContent = t; msg.className = `mt-4 text-[14px] leading-snug ${ok ? 'text-emerald-300' : 'text-rose-300'}`; };
+    save.disabled = true; save.textContent = 'Guardando…';
+    clamp(); const s = side();
+    const blob = await avatarBlob(img, st.cx - s / 2, st.cy - s / 2, s);
+    const res = blob ? await profUploadPhoto(blob) : { error: 'No se ha podido preparar la foto. Prueba con otra.' };
+    if (!root.contains(save)) return;
+    if (res.error) { save.disabled = false; save.textContent = 'Guardar foto'; say(res.error); return; }
+    close(); toast('Foto de perfil guardada');
+  });
+  requestAnimationFrame(() => { draw(); stage.focus(); });
+}
+
+/** Recorte cuadrado → 256×256 JPEG de menos de 100 KB. */
+async function avatarBlob(img, sx, sy, s) {
+  let src = img, sxx = sx, syy = sy, ss = s;
+  if (s > AVATAR_PX * 4) {                         // reducir en dos pasos: queda más nítida
+    const mid = document.createElement('canvas'); mid.width = mid.height = AVATAR_PX * 4;
+    const m = mid.getContext('2d'); m.imageSmoothingQuality = 'high';
+    m.drawImage(img, sx, sy, s, s, 0, 0, mid.width, mid.height);
+    src = mid; sxx = 0; syy = 0; ss = mid.width;
+  }
+  const out = document.createElement('canvas'); out.width = out.height = AVATAR_PX;
+  const c = out.getContext('2d'); c.imageSmoothingQuality = 'high';
+  c.fillStyle = '#ffffff'; c.fillRect(0, 0, AVATAR_PX, AVATAR_PX);    // fondo blanco para PNG transparentes
+  c.drawImage(src, sxx, syy, ss, ss, 0, 0, AVATAR_PX, AVATAR_PX);
+  for (const q of [0.9, 0.82, 0.74, 0.66, 0.58, 0.5, 0.4]) {
+    const b = await new Promise(res => out.toBlob(res, 'image/jpeg', q));
+    if (b && b.size < AVATAR_MAX) return b;
+  }
+  return null;
+}
+
+async function profUploadPhoto(blob) {
+  if (!CLOUD.client || !CLOUD.uid) return { error: 'Entra en tu cuenta para poner una foto.' };
+  if (navigator.onLine === false) return { error: 'Sin conexión. Prueba cuando vuelvas a tener internet.' };
+  const uid = CLOUD.uid, old = PROF.path, path = `${uid}/avatar-${Date.now().toString(36)}.jpg`;
+  PROF.busy = true;
+  try {
+    const st = CLOUD.client.storage.from(AVATAR_BUCKET);
+    let r;
+    try { r = await st.upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false }); } catch (e) { r = { error: e }; }
+    if (r.error) { const e = profError(r.error); if (e.state === 'missing') { PROF.state = 'missing'; PROF.err = e.msg; } return { error: e.msg }; }
+    try { r = await CLOUD.client.from('profiles').upsert({ id: uid, avatar_path: path }, { onConflict: 'id' }); } catch (e) { r = { error: e }; }
+    if (r.error) { try { await st.remove([path]); } catch {} const e = profError(r.error); if (e.state === 'missing') { PROF.state = 'missing'; PROF.err = e.msg; } return { error: e.msg }; }
+    if (old && old !== path && old.startsWith(uid + '/')) { try { await st.remove([old]); } catch {} }   // la foto anterior ya no hace falta
+    if (uid !== CLOUD.uid) return {};
+    PROF.img = await blobToDataURL(blob); PROF.path = path; PROF.state = 'ok'; PROF.err = '';
+    profSaveLocal();
+    return { ok: true };
+  } finally { PROF.busy = false; profRender(); }
+}
+
+function confirmRemovePhoto() {
+  openModal({
+    title: 'Quitar la foto',
+    body: 'Se borra tu foto de perfil y vuelven a salir tus iniciales. Puedes subir otra cuando quieras.',
+    actions: [{ label: 'Cancelar' }, { label: 'Quitar foto', cls: 'btn-danger', fn: async () => {
+      const res = await profRemovePhoto();
+      toast(res.error ? res.error : 'Foto quitada', res.error ? 'error' : undefined);
+    } }],
+  });
+}
+
+async function profRemovePhoto() {
+  if (!CLOUD.client || !CLOUD.uid) return { error: 'Entra en tu cuenta.' };
+  const uid = CLOUD.uid, old = PROF.path;
+  PROF.busy = true;
+  try {
+    let r;
+    try { r = await CLOUD.client.from('profiles').upsert({ id: uid, avatar_path: null }, { onConflict: 'id' }); } catch (e) { r = { error: e }; }
+    if (r.error) return { error: profError(r.error).msg };
+    if (old && old.startsWith(uid + '/')) { try { await CLOUD.client.storage.from(AVATAR_BUCKET).remove([old]); } catch {} }
+    if (uid !== CLOUD.uid) return {};
+    PROF.img = ''; PROF.path = null; profSaveLocal();
+    return { ok: true };
+  } finally { PROF.busy = false; profRender(); }
+}
+
+/* ---------- Cambiar contraseña ---------- */
+function pwError(e) {
+  const c = (e && e.code) || '', m = String((e && e.message) || e || '');
+  if (c === 'same_password' || /different from the old/i.test(m)) return 'La nueva contraseña tiene que ser distinta de la actual.';
+  if (c === 'invalid_credentials' || /invalid login|current password/i.test(m)) return 'La contraseña actual no es correcta.';
+  if (c === 'weak_password' || /weak|at least/i.test(m)) return 'Contraseña demasiado débil. Usa al menos 8 caracteres con letras y números.';
+  if (/reauthentication/i.test(c + m)) return 'Supabase pide confirmar que eres tú. Cierra sesión, vuelve a entrar y repítelo.';
+  return authError(e);
+}
+
+// La pantalla Cuenta se repinta con cada aviso de sincronización (y al comprobar la contraseña actual,
+// que es un «entrar» de nuevo): por eso el estado vive aquí y los campos se buscan siempre por su id.
+const PW = { busy: false, msg: '', ok: false }, AL = { busy: false, msg: '', ok: false };
+function paintForm(st, goId, msgId, label, busyLabel, cls) {
+  const go = el(goId), m = el(msgId);
+  if (go) { go.disabled = st.busy || go.dataset.off === '1'; go.textContent = st.busy ? busyLabel : label; }
+  if (m && st.msg) { m.textContent = st.msg; m.className = `${cls} text-[14px] leading-snug ${st.ok ? 'text-emerald-300' : 'text-rose-300'}`; }
+}
+const pwPaint = () => paintForm(PW, 'pw-go', 'pw-msg', 'Cambiar contraseña', 'Cambiando…', 'mt-4');
+const aliasPaint = () => paintForm(AL, 'alias-go', 'alias-msg', 'Guardar alias', 'Guardando…', 'mt-2');
+
+async function changePassword() {
+  if (PW.busy || !el('pw-cur')) return;
+  const val = id => (el(id) ? el(id).value : '');
+  const say = (t, ok, focus) => { PW.msg = t; PW.ok = !!ok; pwPaint(); if (focus && el(focus)) el(focus).focus(); };
+  const cur = val('pw-cur'), nw = val('pw-new'), rep = val('pw-rep');
+  if (!CLOUD.client || !CLOUD.uid) return say('Entra en tu cuenta para cambiar la contraseña.');
+  if (!cur) return say('Escribe tu contraseña actual.', false, 'pw-cur');
+  if (nw.length < 8) return say('La nueva contraseña necesita al menos 8 caracteres.', false, 'pw-new');
+  if (nw !== rep) return say('Las dos contraseñas nuevas no coinciden.', false, 'pw-rep');
+  if (nw === cur) return say('La nueva contraseña tiene que ser distinta de la actual.', false, 'pw-new');
+  if (navigator.onLine === false) return say('Sin conexión. Prueba cuando vuelvas a tener internet.');
+  PW.busy = true; PW.msg = ''; pwPaint();
+  let r;
+  try {
+    try { r = await CLOUD.client.auth.signInWithPassword({ email: CLOUD.email, password: cur }); } catch (e) { r = { error: e }; }
+    if (r.error) {
+      const bad = r.error.code === 'invalid_credentials' || /invalid login/i.test(r.error.message || '');
+      PW.busy = false;
+      if (bad) { say('La contraseña actual no es correcta.', false, 'pw-cur'); if (el('pw-cur')) el('pw-cur').select(); return; }
+      return say(authError(r.error));
+    }
+    // current_password: por si en Supabase está activo «Require current password when changing password»
+    try { r = await CLOUD.client.auth.updateUser({ password: nw, current_password: cur }); } catch (e) { r = { error: e }; }
+  } finally { PW.busy = false; }
+  if (r.error) return say(pwError(r.error));
+  ['pw-cur', 'pw-new', 'pw-rep'].forEach(id => { const i = el(id); if (i) { i.value = ''; delete i.dataset.dirty; } });
+  say('Contraseña cambiada. La próxima vez que entres, usa la nueva.', true);
+  toast('Contraseña cambiada');
+}
+
+/* ---------- Pintar ---------- */
+const NAV_PROFILE_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
+function renderNavAvatar() {
+  profLocal();
+  $$('#bottom-nav [data-tab="profile"]').forEach(a => {
+    const ico = a.querySelector('.nav-ava, svg'); if (!ico) return;
+    const want = CLOUD.uid && PROF.img ? `<span class="nav-ava"><img src="${esc(PROF.img)}" alt=""></span>` : NAV_PROFILE_SVG;
+    if (ico.outerHTML !== want) ico.outerHTML = want;
+  });
+}
+function profRender() {
+  if (typeof cloudRender === 'function') cloudRender();
+  renderNavAvatar();
+  if (['profile', 'account'].includes(UI.tab)) renderPageExtras();
+}
+
+/** Repinta una caja sin perder lo que se está escribiendo (los avisos de sincronización la repintan a menudo). */
+function keepInputs(box, html) {
+  const vals = {}; $$('input[id][data-dirty]', box).forEach(i => { vals[i.id] = { v: i.value, c: i.checked, t: i.type }; });
+  const a = document.activeElement, fid = a && box.contains(a) ? a.id : null;
+  let sel = null; try { if (fid && typeof a.selectionStart === 'number') sel = [a.selectionStart, a.selectionEnd]; } catch {}
+  const msgs = {}; $$('[id$="-msg"]:not(.hidden)', box).forEach(m => { msgs[m.id] = [m.textContent, m.className]; });
+  box.innerHTML = html;
+  for (const [id, o] of Object.entries(vals)) { const i = box.querySelector('#' + id); if (!i) continue; i.dataset.dirty = '1'; if (i.type === 'checkbox') i.checked = o.c; else { if (o.t === 'text' && i.type === 'password') i.type = 'text'; i.value = o.v; } }
+  for (const [id, [t, c]] of Object.entries(msgs)) { const m = box.querySelector('#' + id); if (m) { m.textContent = t; m.className = c; } }
+  if (fid) { const f = box.querySelector('#' + fid); if (f) { f.focus({ preventScroll: true }); if (sel) try { f.setSelectionRange(sel[0], sel[1]); } catch {} } }
+}
+
+function profileStart() {
+  document.addEventListener('click', e => {
+    const a = e.target.closest('[data-act]'); if (!a) return;
+    if (a.dataset.act === 'photo-pick') pickPhoto();
+    if (a.dataset.act === 'photo-remove') confirmRemovePhoto();
+  });
+  document.addEventListener('submit', async e => {
+    if (e.target.id === 'pw-form') { e.preventDefault(); changePassword(); }
+    if (e.target.id === 'alias-form') {
+      e.preventDefault();
+      if (AL.busy || !el('alias-inp')) return;
+      AL.busy = true; AL.msg = ''; aliasPaint();
+      let r; try { r = await profSaveAlias(el('alias-inp') ? el('alias-inp').value : ''); } finally { AL.busy = false; }
+      if (r.error) { AL.msg = r.error; AL.ok = false; }
+      else { const i = el('alias-inp'); if (i) { i.value = r.alias || ''; delete i.dataset.dirty; } AL.msg = r.alias ? 'Alias guardado.' : 'Alias quitado: se usa tu email.'; AL.ok = true; toast(r.alias ? 'Alias guardado' : 'Alias quitado'); }
+      aliasPaint();
+    }
+  });
+  document.addEventListener('input', e => {
+    if (e.target.closest && e.target.closest('#profile-card, #acct-password') && e.target.id) e.target.dataset.dirty = '1';
+    if (e.target.id !== 'alias-inp') return;
+    AL.msg = '';
+    const m = el('alias-msg'); if (m) { m.textContent = `${e.target.value.length}/${ALIAS_MAX} caracteres`; m.className = 'mt-2 text-[14px] leading-snug text-zinc-500'; }
+  });
+  document.addEventListener('change', e => {
+    if (e.target.id !== 'pw-show') return;
+    e.target.dataset.dirty = '1';
+    ['pw-cur', 'pw-new', 'pw-rep'].forEach(id => { const i = el(id); if (i) i.type = e.target.checked ? 'text' : 'password'; });
+  });
+  renderNavAvatar();
+}
+
+// =========================================================
 //  UI GENÉRICA: toasts, modales, menú, pestañas
 // =========================================================
 function toast(msg, type = 'ok', action) {
@@ -4959,7 +5333,7 @@ async function copyText(text) {
 // =========================================================
 //  ESTRUCTURA · barra lateral, navegación, tema y páginas Panel / Ajustes / Perfil / Cuenta
 // =========================================================
-const APP_VERSION = 'v8';
+const APP_VERSION = 'v9';
 const TABS = { panel: 'Panel', calc: 'Registrar surebet', history: 'Historial', stats: 'Estadísticas', subs: 'Suscripciones', profile: 'Perfil', settings: 'Ajustes', account: 'Cuenta' };
 const THEME_KEY = 'suretrack.theme', SB_KEY = 'suretrack.sidebar';
 /** Emoji de cada deporte. Solo se usa para mostrar; lo que se guarda sigue siendo el nombre. */
@@ -5068,26 +5442,68 @@ function renderSettings() {
 const costModeLabel = () => (DB.settings.costMode === 'paid' ? 'Pagado por adelantado' : 'Prorrateado por días activos');
 function userName() { return CLOUD.email ? CLOUD.email.split('@')[0] : ''; }
 function initials(name) { const p = String(name || '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(/\s+/); return ((p[0] || '?')[0] + (p[1] ? p[1][0] : '')).toUpperCase(); }
+const ICON_USER = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
 function renderProfile() {
   const box = el('profile-card'); if (!box) return;
-  const logged = !!(CLOUD.client && CLOUD.uid), name = userName();
-  box.innerHTML = `
-    <div class="flex flex-wrap items-center gap-6">
-      <span class="avatar !h-24 !w-24 !text-[32px]">${logged ? esc(initials(name)) : '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>'}</span>
-      <div class="min-w-0 flex-1">
-        <h2 class="truncate text-[24px] font-semibold tracking-tight text-white">${logged ? esc(name) : 'Sin sesión'}</h2>
-        <p class="mt-1 truncate text-zinc-400">${logged ? esc(CLOUD.email) : CLOUD.client ? 'Entra para guardar tus datos en tu cuenta' : 'Modo local: datos solo en este navegador'}</p>
+  const logged = !!(CLOUD.client && CLOUD.uid);
+  if (!logged) {
+    box.innerHTML = `<div class="card p-6 sm:p-8">
+      <div class="flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
+        <span class="avatar avatar-xl">${ICON_USER}</span>
+        <div class="min-w-0 flex-1">
+          <h2 class="text-[24px] font-semibold tracking-tight text-white">Sin sesión</h2>
+          <p class="mt-1 text-zinc-400">${CLOUD.client ? 'Entra en tu cuenta para poner un alias y una foto de perfil. Son opcionales.' : 'Modo local: tus datos se guardan solo en este navegador.'}</p>
+        </div>
       </div>
-    </div>
-    <div class="mt-6 rounded-xl border border-white/[0.08] p-4 text-zinc-400">El alias y la foto de perfil llegan en la próxima fase. Mientras, se muestra la parte de tu email antes de la @.</div>
-    <div class="mt-6 flex flex-wrap gap-4">
-      ${CLOUD.client && !logged ? '<button type="button" class="btn-primary" data-act="login">Entrar o crear cuenta</button>' : ''}
-      <a href="#account" data-tab="account" class="btn-ghost">Ir a Cuenta</a>
-      <a href="#settings" data-tab="settings" class="btn-ghost">Ir a Ajustes</a>
+      <div class="mt-6 flex flex-wrap justify-center gap-3 sm:justify-start">
+        ${CLOUD.client ? '<button type="button" class="btn-primary" data-act="login">Entrar o crear cuenta</button>' : ''}
+        <a href="#settings" data-tab="settings" class="btn-ghost">Ir a Ajustes</a>
+      </div>
     </div>`;
+    return;
+  }
+  profLocal();
+  if (UI.tab === 'profile') profPull();
+  const off = PROF.state === 'missing', busy = PROF.busy, dis = off || busy ? 'disabled' : '';
+  const note = PROF.state === 'missing'
+    ? `<div class="card card-warn p-6 sm:p-8" role="status"><h2 class="h2">Falta un paso en Supabase</h2><p class="mt-2 text-zinc-300">Para guardar el alias y la foto hay que ejecutar una vez el archivo <b>perfil_setup.sql</b> en Supabase (SQL Editor). Mientras, el resto de la app funciona igual.</p></div>`
+    : PROF.state === 'offline' ? `<p class="text-zinc-400" role="status">Sin conexión: ves la última copia de tu perfil guardada en este dispositivo.</p>`
+    : PROF.state === 'error' && PROF.err ? `<p class="text-rose-300" role="status">${esc(PROF.err)}</p>` : '';
+  keepInputs(box, `
+    <div class="card p-6 sm:p-8">
+      <div class="flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
+        <span class="avatar avatar-xl" id="prof-ava">${avatarInner()}</span>
+        <div class="min-w-0 max-w-full flex-1">
+          <h2 class="truncate text-[24px] font-semibold tracking-tight text-white">${esc(displayName())}</h2>
+          <p class="mt-1 truncate text-zinc-400">${esc(CLOUD.email)}</p>
+          <div class="mt-4 flex flex-wrap justify-center gap-3 sm:justify-start">
+            <button type="button" class="btn-primary" data-act="photo-pick" ${dis}>${PROF.img ? 'Cambiar foto' : 'Subir foto'}</button>
+            ${PROF.img ? `<button type="button" class="btn-ghost" data-act="photo-remove" ${dis}>Quitar foto</button>` : ''}
+          </div>
+        </div>
+      </div>
+      <p class="mt-6 text-[14px] leading-relaxed text-zinc-400">Foto opcional. Se recorta en cuadrado y se guarda a 256 × 256 px (menos de 100 KB) en tu cuenta. Solo tú puedes verla. Sin foto, salen tus iniciales.</p>
+    </div>
+    ${note}
+    <form id="alias-form" class="card p-6 sm:p-8" novalidate>
+      <h2 class="h2">Alias</h2>
+      <p class="sub">Opcional. Es el nombre que verás en la app. Si lo dejas vacío, se usa la parte de tu email antes de la @.</p>
+      <label class="lbl mt-4" for="alias-inp">Tu alias</label>
+      <div class="flex flex-col gap-3 sm:flex-row">
+        <input id="alias-inp" class="inp" maxlength="${ALIAS_MAX}" autocomplete="nickname" spellcheck="false" placeholder="Ej.: Dani" value="${esc(PROF.alias)}" ${dis}>
+        <button type="submit" id="alias-go" class="btn-primary sm:shrink-0" data-off="${off || busy ? 1 : 0}" ${dis}>Guardar alias</button>
+      </div>
+      <p id="alias-msg" class="mt-2 text-[14px] leading-snug text-zinc-500">Máximo ${ALIAS_MAX} caracteres.</p>
+    </form>
+    <div class="flex flex-wrap gap-3">
+      <a href="#account" data-tab="account" class="btn-ghost">Cuenta y contraseña</a>
+      <a href="#settings" data-tab="settings" class="btn-ghost">Ajustes</a>
+    </div>`);
+  aliasPaint();
 }
 function renderAccount() {
   const box = el('acct-session'); if (!box) return;
+  const pw = el('acct-password');
   if (!CLOUD.client) {
     box.innerHTML = `<h2 class="h2">Sesión</h2><p class="mt-2 text-zinc-400">Modo local: tus datos se guardan solo en este navegador. Exporta una copia de seguridad de vez en cuando.</p>`;
   } else if (!CLOUD.uid) {
@@ -5095,17 +5511,35 @@ function renderAccount() {
       <div class="mt-4"><button type="button" class="btn-primary" data-act="login">Entrar o crear cuenta</button></div>`;
   } else {
     const st = CLOUD.state === 'off' ? 'sync' : CLOUD.state, at = syncMeta().at;
-    box.innerHTML = `<h2 class="h2">Sesión</h2>
-      <dl class="mt-4 grid gap-4 sm:grid-cols-2">
-        <div><dt class="text-zinc-500">Correo</dt><dd class="mt-1 truncate font-medium text-zinc-100">${esc(CLOUD.email)}</dd></div>
+    box.innerHTML = `<div class="flex items-center gap-4"><span class="avatar">${avatarInner()}</span><div class="min-w-0"><h2 class="h2 truncate">${esc(displayName())}</h2><p class="truncate text-zinc-400">Sesión iniciada</p></div></div>
+      <dl class="mt-6 grid gap-4 sm:grid-cols-2">
+        <div class="min-w-0"><dt class="text-zinc-500">Correo de la sesión</dt><dd class="mt-1 break-all font-medium text-zinc-100">${esc(CLOUD.email)}</dd></div>
         <div><dt class="text-zinc-500">Sincronización</dt><dd class="mt-1 flex items-center gap-2 font-medium text-zinc-100"><span class="h-2.5 w-2.5 shrink-0 rounded-full ${SYNC_DOT[st]}"></span>${esc(SYNC_TXT[st])}${st === 'ok' && at ? ` · ${esc(fmtSyncAt(at))}` : ''}</dd></div>
       </dl>
       ${st === 'error' && CLOUD.errMsg ? `<p class="mt-4 text-rose-300">${esc(CLOUD.errMsg)}</p>` : ''}
-      <p class="mt-4 text-zinc-500">Cambiar la contraseña llega en la próxima fase.</p>
-      <div class="mt-4 flex flex-wrap gap-4">
+      <div class="mt-6 flex flex-wrap gap-3">
         <button type="button" class="btn-ghost" data-act="sync">${st === 'conflict' ? 'Resolver el conflicto' : 'Sincronizar ahora'}</button>
         <button type="button" class="btn-ghost" data-act="logout">Cerrar sesión</button>
       </div>`;
+  }
+  if (pw) {
+    const show = !!(CLOUD.client && CLOUD.uid);
+    pw.classList.toggle('hidden', !show);
+    if (show) keepInputs(pw, `
+      <form id="pw-form" class="card p-6" novalidate>
+        <h2 class="h2">Cambiar contraseña</h2>
+        <p class="sub">Escribe la actual y la nueva. La nueva necesita al menos 8 caracteres.</p>
+        <input type="email" name="username" autocomplete="username" value="${esc(CLOUD.email)}" readonly hidden>
+        <div class="mt-4 grid max-w-md gap-4">
+          <div><label class="lbl" for="pw-cur">Contraseña actual</label><input id="pw-cur" type="password" class="inp" autocomplete="current-password"></div>
+          <div><label class="lbl" for="pw-new">Nueva contraseña</label><input id="pw-new" type="password" class="inp" autocomplete="new-password" minlength="8"></div>
+          <div><label class="lbl" for="pw-rep">Repite la nueva</label><input id="pw-rep" type="password" class="inp" autocomplete="new-password" minlength="8"></div>
+        </div>
+        <label class="mt-4 inline-flex min-h-11 cursor-pointer items-center gap-3 text-zinc-300"><input id="pw-show" type="checkbox" class="h-5 w-5 accent-emerald-500"> Mostrar contraseñas</label>
+        <p id="pw-msg" class="mt-4 hidden"></p>
+        <div class="mt-6"><button type="submit" id="pw-go" class="btn-primary">Cambiar contraseña</button></div>
+      </form>`);
+    if (show) pwPaint(); else pw.innerHTML = '';
   }
   const lb = DB.settings.lastBackup ? new Date(DB.settings.lastBackup) : null;
   el('acct-backup').textContent = lb ? `Última copia exportada: ${fmtDayLong(lb)}.` : 'Aún no has exportado ninguna copia.';
@@ -8345,6 +8779,7 @@ function init() {
   cloudStart();  // nube: botón de cuenta y primera sincronización
   pwaStart();    // app instalable: botón «Instalar App», service worker y almacenamiento persistente
   shellStart();  // barra lateral, menú del móvil y tema
+  profileStart(); // perfil: alias, foto y cambio de contraseña
   setTab(location.hash.slice(1) || 'panel');
   setInterval(() => {
     renderKPIs(); renderReminders(); renderRecent();
