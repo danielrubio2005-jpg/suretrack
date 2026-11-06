@@ -6,6 +6,16 @@
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#060709">
 <title>SureTrack · Surebets</title>
+<!-- App instalable (PWA): Windows, Android, iPhone/iPad -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="application-name" content="SureTrack">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SureTrack">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -277,6 +287,11 @@
         <button id="btn-bell" class="btn-ghost relative !w-10 !px-0" title="Surebets por resolver" aria-label="Surebets por resolver">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
           <span id="bell-count" class="absolute -right-1.5 -top-1.5 hidden h-5 min-w-5 place-items-center rounded-full bg-amber-400 px-1 font-mono text-[11px] font-bold text-[#1a1200] shadow-[0_0_12px_rgba(251,191,36,.6)]"></span>
+        </button>
+        <!-- Instalar como app. Oculto si ya está instalada o el navegador no lo permite -->
+        <button id="btn-install" class="btn-ghost hidden !border-emerald-400/25 !text-emerald-300" title="Instalar SureTrack como aplicación" aria-label="Instalar App">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+          <span class="hidden sm:inline">Instalar App</span>
         </button>
         <!-- Cuenta (nube). Oculto si la nube no está configurada -->
         <div id="acc-box" class="relative hidden">
@@ -4336,6 +4351,117 @@ function openAuth(mode = 'login') {
 }
 
 // =========================================================
+//  APP INSTALABLE (PWA): botón «Instalar App», service worker y almacenamiento persistente
+//  · Windows / Android (Chrome, Edge): el navegador avisa con «beforeinstallprompt» → instalación en un clic.
+//  · iPhone / iPad: no hay instalación automática → ventana con los 2 pasos de «Añadir a pantalla de inicio».
+//  · Firefox: no instala webs como app → ventana que explica cómo hacerlo con Edge o Chrome.
+//  Abierta como archivo local (file://) no registra nada: funciona igual que siempre.
+// =========================================================
+const PWA = { prompt: null };
+const pwaStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const pwaIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+/** Cómo se instala en este navegador; null = ya instalada o el navegador no lo permite. */
+function pwaKind() {
+  if (pwaStandalone()) return null;
+  if (PWA.prompt) return 'prompt';
+  const ua = navigator.userAgent;
+  if (pwaIOS()) return 'ios';
+  if (/Firefox\//.test(ua)) return /Android|Mobile/.test(ua) ? 'firefox-mobile' : 'firefox';
+  if (/Macintosh/.test(ua) && /Safari\//.test(ua) && !/Chrome|Chromium|Edg\//.test(ua)) return 'mac-safari';
+  return null;   // Chrome / Edge: el botón aparece cuando el navegador confirma que se puede instalar
+}
+function pwaRender() { const b = el('btn-install'); if (b) b.classList.toggle('hidden', !pwaKind()); }
+
+const PWA_ICON = {
+  dots: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>',
+  share: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-2"/><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/></svg>',
+  add: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>',
+  menu: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>',
+  win: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 8v6"/><path d="M9 11l3 3 3-3"/></svg>',
+};
+const pwaStep = (n, icons, title, text) => `
+  <div class="flex gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3.5">
+    <div class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-emerald-400/15 font-mono text-[13px] font-bold text-emerald-300">${n}</div>
+    <div class="min-w-0 flex-1">
+      <div class="flex flex-wrap items-center gap-2 text-zinc-100">${title}<span class="flex gap-1.5">${icons.map(i => `<span class="grid h-8 w-8 place-items-center rounded-lg border border-white/10 bg-white/[0.04] text-sky-300">${PWA_ICON[i]}</span>`).join('')}</span></div>
+      <p class="mt-1.5 text-[12.5px] leading-snug text-zinc-400">${text}</p>
+    </div>
+  </div>`;
+const PWA_SYNC_NOTE = '<p class="mt-3 text-[12px] leading-snug text-zinc-500">La app instalada guarda sus datos aparte del navegador: entra con tu cuenta y se descargarán tus surebets.</p>';
+const pwaLink = () => location.origin + location.pathname;
+const pwaCopy = () => {
+  const done = () => toast('Enlace copiado. Pégalo en Microsoft Edge o Google Chrome.');
+  try { navigator.clipboard.writeText(pwaLink()).then(done, () => toast(pwaLink(), 'info')); } catch { toast(pwaLink(), 'info'); }
+};
+
+async function pwaInstall() {
+  const kind = pwaKind();
+  if (kind === 'prompt') {                       // Windows / Android: instalación nativa
+    const p = PWA.prompt; PWA.prompt = null;
+    try {
+      await p.prompt();
+      const choice = await p.userChoice;
+      if (choice && choice.outcome === 'accepted') toast('Instalando SureTrack…');
+    } catch (e) { console.warn('PWA:', e); }
+    pwaRender();
+    return;
+  }
+  const M = {
+    ios: {
+      title: 'Instalar SureTrack en tu iPhone o iPad',
+      body: `<div class="space-y-2.5">
+        ${pwaStep(1, ['dots', 'share'], '<b>Pulsa ··· y luego Compartir</b>', 'En iOS 26 los tres puntos están junto a la barra de direcciones. En iOS 18 o anterior, el botón Compartir está en la barra de abajo de Safari (en iPad, arriba a la derecha).')}
+        ${pwaStep(2, ['add'], '<b>Añadir a pantalla de inicio</b>', 'Baja en el menú hasta verlo. Deja activado «Abrir como app web» si aparece y pulsa <b>Añadir</b>.')}
+      </div>${PWA_SYNC_NOTE}`,
+      actions: [{ label: 'Entendido', cls: 'btn-primary' }],
+    },
+    firefox: {
+      title: 'Instalar SureTrack en Windows',
+      body: `<p>Firefox todavía no instala webs como aplicación. Hazlo con <b>Microsoft Edge</b> (viene con Windows) o con <b>Google Chrome</b>:</p>
+      <div class="mt-3 space-y-2.5">
+        ${pwaStep(1, ['win'], '<b>Abre este enlace en Edge</b>', 'Pulsa «Copiar enlace» y pégalo en la barra de direcciones de Edge.')}
+        ${pwaStep(2, ['add'], '<b>Pulsa «Instalar App»</b>', 'Está arriba, junto a la campana. También desde el menú ··· de Edge → Aplicaciones → Instalar SureTrack.')}
+      </div>${PWA_SYNC_NOTE.replace('del navegador', 'de Firefox')}
+      <p class="mt-1 text-[12px] leading-snug text-zinc-500">Después la abrirás desde el menú Inicio o la barra de tareas, en su propia ventana.</p>`,
+      actions: [{ label: 'Cerrar' }, { label: 'Copiar enlace', cls: 'btn-primary', fn: pwaCopy }],
+    },
+    'firefox-mobile': {
+      title: 'Instalar SureTrack',
+      body: `<div class="space-y-2.5">
+        ${pwaStep(1, ['menu'], '<b>Abre el menú ⋮ de Firefox</b>', 'Está arriba o abajo a la derecha, según cómo tengas la barra.')}
+        ${pwaStep(2, ['add'], '<b>Instalar / Añadir a pantalla de inicio</b>', 'Confirma con «Añadir». El icono de SureTrack aparecerá con tus apps.')}
+      </div>${PWA_SYNC_NOTE}`,
+      actions: [{ label: 'Entendido', cls: 'btn-primary' }],
+    },
+    'mac-safari': {
+      title: 'Instalar SureTrack en tu Mac',
+      body: `<div class="space-y-2.5">${pwaStep(1, ['add'], '<b>Archivo → Añadir al Dock</b>', 'En la barra de menús de Safari. Confirma con «Añadir».')}</div>${PWA_SYNC_NOTE}`,
+      actions: [{ label: 'Entendido', cls: 'btn-primary' }],
+    },
+  }[kind];
+  if (M) openModal(M);
+}
+
+function pwaStart() {
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); PWA.prompt = e; pwaRender(); });
+  window.addEventListener('appinstalled', () => { PWA.prompt = null; pwaRender(); toast('SureTrack instalada. Ábrela desde el menú Inicio o la pantalla de inicio.'); });
+  try { matchMedia('(display-mode: standalone)').addEventListener('change', pwaRender); } catch {}
+  const b = el('btn-install'); if (b) b.addEventListener('click', pwaInstall);
+  pwaRender();
+  // Pide al navegador que no borre los datos guardados aunque falte espacio (iOS, Windows…)
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persisted().then(p => p || navigator.storage.persist()).catch(() => {}); } catch {}
+  // Service worker: abrir al instante, funcionar sin conexión y avisar de versiones nuevas
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    navigator.serviceWorker.addEventListener('message', e => {
+      if (e.data && e.data.type === 'suretrack:update') toast('Hay una versión nueva de SureTrack.', 'info', { label: 'Actualizar', fn: () => location.reload() });
+    });
+    navigator.serviceWorker.register('sw.js', { scope: './' }).catch(err => console.warn('PWA: service worker no registrado', err));
+    try { navigator.serviceWorker.startMessages(); } catch {}
+  }
+}
+
+// =========================================================
 //  UI GENÉRICA: toasts, modales, menú, pestañas
 // =========================================================
 function toast(msg, type = 'ok', action) {
@@ -7540,6 +7666,7 @@ function init() {
   syncEventMeta();
   renderAll();
   cloudStart();  // nube: botón de cuenta y primera sincronización
+  pwaStart();    // app instalable: botón «Instalar App», service worker y almacenamiento persistente
   setTab(location.hash.slice(1) || 'calc');
   setInterval(() => {
     renderKPIs(); renderReminders(); renderRecent();
