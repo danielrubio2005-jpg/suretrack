@@ -3,8 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#060709">
+<script>
+/* Tema y barra lateral antes de pintar la página (sin parpadeo) */
+(function () {
+  var d = document.documentElement, m = 'system';
+  try { m = localStorage.getItem('suretrack.theme') || 'system'; if (localStorage.getItem('suretrack.sidebar') === 'collapsed') d.setAttribute('data-sb', 'collapsed'); } catch (e) {}
+  var t = m === 'light' || m === 'dark' ? m : (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  d.setAttribute('data-theme', t);
+})();
+</script>
 <title>SureTrack · Surebets</title>
 <!-- App instalable (PWA): Windows, Android, iPhone/iPad -->
 <link rel="manifest" href="manifest.json">
@@ -55,33 +64,176 @@
 </style>
 
 <style>
-  :root { color-scheme: dark; --bg: #060709; --line: rgba(255,255,255,.07); --line-2: rgba(255,255,255,.13); --em: #10b981; --em2: #34d399; }
-  html { background: var(--bg); }
+  /* =========================================================
+     TEMAS · oscuro (por defecto) y claro
+     Los colores de la app salen de estas variables. En claro, además, se reasigna la paleta
+     de Tailwind (blanco ↔ tinta, grises invertidos, acentos más oscuros) para que todas las
+     pantallas cambien sin reescribir cada clase.
+     ========================================================= */
+  :root {
+    color-scheme: dark;
+    --page: #060709; --bg: var(--page);
+    --ink-rgb: 255 255 255;
+    --line: rgba(255,255,255,.07); --line-2: rgba(255,255,255,.13);
+    --em: #10b981; --em2: #34d399;
+    --c-panel: rgba(12,14,18,.9); --c-panel-solid: rgba(12,14,18,.96);
+    --c-popover: rgba(16,19,24,.98); --c-popover-solid: #101318;
+    --c-input: #07080a; --c-input-2: #08090c; --c-raise: #1a1d23;
+    --c-sidebar: #08090b; --c-bar: rgba(10,12,15,.92); --c-scroll: #22252b;
+    --c-ink: #f4f4f5; --c-ink-2: #e4e4e7; --c-ink-3: #d4d4d8;
+    --c-muted: #a1a1aa; --c-muted-2: #8b8f98; --c-faint: #71717a; --c-placeholder: #5b5f68;
+    --c-acc: #34d399; --c-acc-text: #6ee7b7; --c-live: #fda4af; --c-pre: #7dd3fc;
+    --c-shadow-card: inset 0 1px 0 0 rgba(255,255,255,.08), 0 1px 2px rgba(0,0,0,.45), 0 18px 40px -24px rgba(0,0,0,.7);
+    --c-shadow-stat: inset 0 1px 0 0 rgba(255,255,255,.06);
+    --c-shadow-pop: inset 0 1px 0 rgba(255,255,255,.06), 0 24px 60px -12px rgba(0,0,0,.85);
+    --sb-w: 240px; --sb-wc: 72px; --top-h: 72px; --bnav-h: 64px;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page: #f4f5f7;
+    --ink-rgb: 15 17 22;
+    --line: rgba(15,17,22,.10); --line-2: rgba(15,17,22,.18);
+    --c-panel: #ffffff; --c-panel-solid: #ffffff;
+    --c-popover: rgba(255,255,255,.98); --c-popover-solid: #ffffff;
+    --c-input: #ffffff; --c-input-2: #ffffff; --c-raise: #ffffff;
+    --c-sidebar: #ffffff; --c-bar: rgba(255,255,255,.94); --c-scroll: #c8cbd1;
+    --c-ink: #111318; --c-ink-2: #1d2026; --c-ink-3: #30333a;
+    --c-muted: #4b4e56; --c-muted-2: #53565e; --c-faint: #60636b; --c-placeholder: #8e9199;
+    --c-acc: #059669; --c-acc-text: #047857; --c-live: #be123c; --c-pre: #0369a1;
+    --c-shadow-card: 0 1px 2px rgba(16,24,40,.05), 0 6px 20px -10px rgba(16,24,40,.10);
+    --c-shadow-stat: 0 1px 2px rgba(16,24,40,.04);
+    --c-shadow-pop: 0 16px 40px -12px rgba(16,24,40,.22), 0 2px 6px rgba(16,24,40,.06);
+    /* Paleta de Tailwind para el tema claro */
+    --color-white: #0f1116;
+    --color-zinc-100: #15171c; --color-zinc-200: #22252b; --color-zinc-300: #33363d; --color-zinc-400: #4b4e56;
+    --color-zinc-500: #5a5d65; --color-zinc-600: #686b73; --color-zinc-700: #a0a3aa; --color-zinc-800: #d5d7dc; --color-zinc-900: #e8e9ec;
+    --color-emerald-100: #064e3b; --color-emerald-200: #065f46; --color-emerald-300: #047857; --color-emerald-400: #059669;
+    --color-rose-100: #881337; --color-rose-200: #9f1239; --color-rose-300: #be123c; --color-rose-400: #e11d48;
+    --color-amber-100: #78350f; --color-amber-200: #92400e; --color-amber-300: #b45309; --color-amber-400: #d97706;
+    --color-sky-200: #075985; --color-sky-300: #0369a1; --color-sky-400: #0284c7;
+    --color-violet-200: #5b21b6; --color-violet-300: #6d28d9; --color-violet-400: #7c3aed;
+  }
+  :root[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator,
+  :root[data-theme="light"] input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: none; }
+  :root[data-theme="light"] .brand.neutral { --bg: #e9eaee; --fg: #25272c; --ac: #c3c6cc; }
+  :root[data-theme="light"] body { background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(16,185,129,.07), transparent 70%), var(--page); }
+
+  /* =========================================================
+     ESTRUCTURA · barra lateral, cabecera, navegación inferior
+     ========================================================= */
+  .skip-link { position: absolute; left: 16px; top: -60px; z-index: 200; padding: 10px 16px; border-radius: 10px; background: var(--c-popover-solid); color: var(--c-ink); }
+  .skip-link:focus { top: 16px; }
+  .logo-badge { display: grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; border-radius: 12px; color: #03140d;
+                background: linear-gradient(180deg, #5ee9b5, #00bc7d); box-shadow: 0 0 0 1px rgba(16,185,129,.45), 0 8px 20px -10px rgba(16,185,129,.8); }
+  .sb { position: fixed; inset: 0 auto 0 0; z-index: 60; width: min(var(--sb-w), 86vw); display: flex; flex-direction: column; gap: 16px;
+        padding: 16px 12px; background: var(--c-sidebar); border-right: 1px solid var(--line); overflow-y: auto; overflow-x: hidden;
+        transform: translateX(-102%); transition: transform .25s ease, width .2s ease; }
+  .sb.is-open { transform: none; box-shadow: 0 24px 60px rgba(0,0,0,.45); }
+  .sb-backdrop { position: fixed; inset: 0; z-index: 55; background: rgba(0,0,0,.5); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+  .sb-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 48px; padding: 0 4px; }
+  .sb-brand { display: flex; align-items: center; gap: 12px; min-width: 0; border-radius: 12px; }
+  .sb-nav { display: flex; flex-direction: column; gap: 4px; }
+  .sb-sep { height: 1px; margin: 8px 8px; background: var(--line); }
+  .sb-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+  .sb-tools { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 4px; }
+  .nav-item { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 0 12px; border-radius: 10px;
+              font-size: 15px; font-weight: 500; color: var(--c-muted); white-space: nowrap; text-align: left; transition: background .15s, color .15s; }
+  .nav-item > svg { flex-shrink: 0; }
+  .nav-item:hover { background: rgb(var(--ink-rgb) / .05); color: var(--c-ink); }
+  .nav-item.is-active { background: color-mix(in srgb, var(--c-acc) 14%, transparent); color: var(--c-ink); font-weight: 600; }
+  .nav-item.is-active::before { content: ""; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 4px; border-radius: 0 4px 4px 0; background: var(--c-acc); }
+  .nav-item.is-active > svg { color: var(--c-acc); }
+  .nav-install { color: var(--c-acc-text); }
+  .nav-badge { margin-left: auto; display: grid; place-items: center; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 99px; background: #f59e0b; color: #1a1200; font: 700 14px "JetBrains Mono", monospace; }
+  .theme-seg { display: flex; gap: 2px; padding: 3px; border-radius: 12px; border: 1px solid var(--line); background: var(--c-input); }
+  .theme-seg button { display: grid; place-items: center; width: 40px; height: 36px; border-radius: 9px; color: var(--c-muted); transition: background .15s, color .15s; }
+  .theme-seg button:hover { color: var(--c-ink); }
+  .theme-seg button.is-active { background: var(--c-raise); color: var(--c-acc); box-shadow: inset 0 0 0 1px var(--line-2); }
+  .icon-44 { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px; color: var(--c-muted); transition: background .15s, color .15s; }
+  .icon-44:hover { background: rgb(var(--ink-rgb) / .06); color: var(--c-ink); }
+  .sb-only-collapsed { display: none; }
+  .user-chip { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 8px; border-radius: 12px; text-align: left; transition: background .15s; }
+  button.user-chip:hover { background: rgb(var(--ink-rgb) / .05); }
+  .avatar { position: relative; display: grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; border-radius: 99px; font-weight: 700; font-size: 16px; text-transform: uppercase;
+            color: var(--c-acc-text); background: color-mix(in srgb, var(--c-acc) 15%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c-acc) 35%, transparent); }
+  .avatar .dot { position: absolute; right: -1px; bottom: -1px; width: 12px; height: 12px; border-radius: 99px; box-shadow: 0 0 0 2px var(--c-sidebar); }
+  .app-main { min-width: 0; min-height: 100vh; display: flex; flex-direction: column; }
+  .topbar { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; gap: 12px; min-height: var(--top-h); padding: 12px 16px;
+            background: color-mix(in srgb, var(--page) 86%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-bottom: 1px solid var(--line); }
+  .bnav { position: fixed; inset: auto 0 0 0; z-index: 45; display: flex; justify-content: space-around; gap: 4px; height: calc(var(--bnav-h) + env(safe-area-inset-bottom));
+          padding: 0 4px env(safe-area-inset-bottom); background: var(--c-bar); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-top: 1px solid var(--line); }
+  .bnav-item { position: relative; flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 0 2px;
+               font-size: 14px; font-weight: 500; color: var(--c-muted); white-space: nowrap; }
+  .bnav-item.is-active { color: var(--c-acc-text); font-weight: 600; }
+  .bnav-item.is-active::before { content: ""; position: absolute; top: 0; left: 25%; right: 25%; height: 3px; border-radius: 0 0 3px 3px; background: var(--c-acc); }
+  .bnav-badge { position: absolute; top: 6px; left: calc(50% + 6px); min-width: 10px; height: 10px; border-radius: 99px; background: #f59e0b; box-shadow: 0 0 0 2px var(--c-sidebar); }
+  .link-acc { font-weight: 600; color: var(--c-acc-text); min-height: 44px; display: inline-flex; align-items: center; }
+  .link-acc:hover { text-decoration: underline; }
+  .quick-link { display: flex; align-items: center; gap: 16px; min-height: 64px; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--line); transition: border-color .15s, background .15s; }
+  .quick-link:hover { border-color: var(--line-2); background: rgb(var(--ink-rgb) / .03); }
+  .quick-ico { display: grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; border-radius: 12px; color: var(--c-acc-text); background: color-mix(in srgb, var(--c-acc) 13%, transparent); }
+  main#main { flex: 1; width: 100%; max-width: 1440px; margin: 0 auto; padding: 24px 16px calc(var(--bnav-h) + 40px + env(safe-area-inset-bottom)); }
+  html[data-page="calc"] main#main { padding-bottom: calc(var(--bnav-h) + 120px + env(safe-area-inset-bottom)); }
+  #mobile-bar { bottom: calc(var(--bnav-h) + env(safe-area-inset-bottom)); }
+  #toasts { bottom: calc(var(--bnav-h) + 16px + env(safe-area-inset-bottom)); }
+  html[data-page="calc"] #toasts { bottom: calc(var(--bnav-h) + 96px + env(safe-area-inset-bottom)); }
+  html:not([data-page="panel"]):not([data-page="history"]) #overdue-banner { display: none !important; }
+  html[data-page="calc"] #top-new { display: none !important; }
+  .app-footer { width: 100%; max-width: 1440px; margin: 0 auto; padding: 0 16px calc(var(--bnav-h) + 24px); }
+  @media (min-width: 640px) { main#main { padding-left: 24px; padding-right: 24px; } .topbar { padding: 12px 24px; } .app-footer { padding-left: 24px; padding-right: 24px; } }
+  @media (min-width: 1024px) {
+    .sb { transform: none; width: var(--sb-w); box-shadow: none; }
+    .sb-backdrop { display: none; }
+    .app-main { margin-left: var(--sb-w); transition: margin-left .2s ease; }
+    main#main, html[data-page="calc"] main#main { padding: 32px 32px 48px; }
+    .topbar { padding: 12px 32px; }
+    .app-footer { padding: 0 32px 32px; }
+    #toasts { bottom: 16px; }
+    html[data-page="calc"] #toasts { bottom: auto; top: calc(var(--top-h) + 16px); }   /* en Registrar, arriba: no tapan el botón Guardar del boleto */
+    #mobile-bar { bottom: 0; }
+    html[data-sb="collapsed"] .sb { width: var(--sb-wc); padding-inline: 14px; }
+    html[data-sb="collapsed"] .app-main { margin-left: var(--sb-wc); }
+    html[data-sb="collapsed"] .sb .sb-label, html[data-sb="collapsed"] .sb .nav-badge { display: none !important; }
+    html[data-sb="collapsed"] .sb .nav-item { justify-content: center; padding: 0; }
+    html[data-sb="collapsed"] .sb .nav-item.is-active::before { left: -14px; }
+    html[data-sb="collapsed"] .sb-head { justify-content: center; padding: 0; }
+    html[data-sb="collapsed"] .sb-tools { flex-direction: column; padding: 0; }
+    html[data-sb="collapsed"] .sb-only-collapsed { display: grid; }
+    html[data-sb="collapsed"] #sb-collapse svg { transform: scaleX(-1); }
+    html[data-sb="collapsed"] .user-chip { justify-content: center; padding: 8px 0; }
+  }
+  @media (min-width: 1280px) { #mobile-bar { display: none !important; } html[data-page="calc"] main#main { padding-bottom: 48px; } }
+  /* Visibilidad de piezas de la estructura (estas clases propias mandan sobre las de Tailwind) */
+  .nav-item.hidden, .user-chip.hidden, .icon-44.hidden { display: none; }
+  #top-new, #sb-collapse { display: none; }
+  @media (min-width: 640px) { #top-new { display: inline-flex; } }
+  @media (min-width: 1024px) { .bnav, #sb-open, #sb-close, #top-install { display: none; } #sb-collapse { display: grid; } }
+  html { background: var(--page); }
   body {
     background:
       radial-gradient(ellipse 80% 50% at 50% -20%, rgba(16,185,129,.08), transparent 70%),
       radial-gradient(ellipse 60% 40% at 100% 0%, rgba(56,189,248,.035), transparent 70%),
-      var(--bg);
+      var(--page);
     background-attachment: fixed;
   }
   /* Tipografía de terminal: todos los números alineados */
   .num, .inp-odd, .font-mono { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums slashed-zero; letter-spacing: -0.01em; }
-  select option, select optgroup { background: #101318; color: #e4e4e7; }
+  select option, select optgroup { background: var(--c-popover-solid); color: var(--c-ink-2); }
 
   /* ---------- Superficies ---------- */
-  .card { position: relative; border-radius: 16px; background: rgba(12,14,18,.9); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
-          border: 1px solid var(--line); box-shadow: inset 0 1px 0 0 rgba(255,255,255,.08), 0 1px 2px rgba(0,0,0,.45), 0 18px 40px -24px rgba(0,0,0,.7);
+  .card { position: relative; border-radius: 16px; background: var(--c-panel); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+          border: 1px solid var(--line); box-shadow: var(--c-shadow-card);
           transition: border-color .2s ease, box-shadow .2s ease; }
   .card:hover { border-color: var(--line-2); }
-  .stat { position: relative; border-radius: 14px; padding: 16px; background: rgba(12,14,18,.9); border: 1px solid var(--line); box-shadow: inset 0 1px 0 0 rgba(255,255,255,.06); transition: border-color .2s; }
+  .stat { position: relative; border-radius: 14px; padding: 16px; background: var(--c-panel); border: 1px solid var(--line); box-shadow: var(--c-shadow-stat); transition: border-color .2s; }
   .stat:hover { border-color: var(--line-2); }
 
   /* ---------- Campos ---------- */
-  .inp { height: 40px; width: 100%; border-radius: 10px; border: 1px solid rgba(255,255,255,.08); background: #07080a; padding: 0 12px; font-size: 14px; color: #f4f4f5;
+  .inp { height: 40px; width: 100%; border-radius: 10px; border: 1px solid rgb(var(--ink-rgb) / .08); background: var(--c-input); padding: 0 12px; font-size: 14px; color: var(--c-ink);
          box-shadow: inset 0 1px 2px rgba(0,0,0,.55), inset 0 0 0 1px rgba(0,0,0,.2); outline: none; transition: border-color .15s ease, box-shadow .15s ease, background .15s ease; }
-  .inp::placeholder { color: #4b4f58; }
-  .inp:hover { border-color: rgba(255,255,255,.14); }
-  .inp:focus { border-color: rgba(52,211,153,.8); background: #08090c; box-shadow: inset 0 1px 2px rgba(0,0,0,.55), 0 0 0 4px rgba(16,185,129,.15); }
+  .inp::placeholder { color: var(--c-placeholder); }
+  .inp:hover { border-color: rgb(var(--ink-rgb) / .14); }
+  .inp:focus { border-color: rgba(52,211,153,.8); background: var(--c-input-2); box-shadow: inset 0 1px 2px rgba(0,0,0,.55), 0 0 0 4px rgba(16,185,129,.15); }
   .inp:disabled { cursor: not-allowed; opacity: .4; }
   select.inp { appearance: none; -webkit-appearance: none; padding-right: 32px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; }
   input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(.7); cursor: pointer; }
@@ -89,20 +241,20 @@
 
   /* ---------- Botones ---------- */
   .btn-primary { display: inline-flex; height: 40px; align-items: center; justify-content: center; gap: 8px; border-radius: 10px; padding: 0 16px; font-size: 14px; font-weight: 600; color: #03140d;
-                 background: linear-gradient(180deg, #34d399, #10b981); box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 0 0 1px rgba(16,185,129,.55), 0 10px 24px -12px rgba(16,185,129,.7);
+                 background: linear-gradient(180deg, #34d399, #10b981); box-shadow: inset 0 1px 0 rgb(var(--ink-rgb) / .35), 0 0 0 1px rgba(16,185,129,.55), 0 10px 24px -12px rgba(16,185,129,.7);
                  transition: filter .15s, transform .1s; }
   .btn-primary:hover { filter: brightness(1.08); }
   .btn-primary:active { transform: scale(.98); }
-  .seg { display: flex; gap: 2px; border-radius: 11px; border: 1px solid rgba(255,255,255,.07); background: #07080a; padding: 3px; box-shadow: inset 0 1px 2px rgba(0,0,0,.5); }
-  .seg > button { flex: 1; white-space: nowrap; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 500; color: #8b8f98; transition: color .15s, background .15s, box-shadow .15s; }
-  .seg > button:hover { color: #f4f4f5; }
-  .seg > button.is-active { color: #fff; background: #1a1d23; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 1px 3px rgba(0,0,0,.5); }
-  .tab-btn.is-active { color: #fff; background: rgba(255,255,255,.08); box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
+  .seg { display: flex; gap: 2px; border-radius: 11px; border: 1px solid rgb(var(--ink-rgb) / .07); background: var(--c-input); padding: 3px; box-shadow: inset 0 1px 2px rgba(0,0,0,.5); }
+  .seg > button { flex: 1; white-space: nowrap; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 500; color: var(--c-muted-2); transition: color .15s, background .15s, box-shadow .15s; }
+  .seg > button:hover { color: var(--c-ink); }
+  .seg > button.is-active { color: var(--c-ink); background: var(--c-raise); box-shadow: inset 0 1px 0 rgb(var(--ink-rgb) / .08), 0 1px 3px rgba(0,0,0,.5); }
+  .tab-btn.is-active { color: var(--c-ink); background: rgb(var(--ink-rgb) / .08); box-shadow: inset 0 1px 0 rgb(var(--ink-rgb) / .08); }
 
   /* ---------- Cabecera de estado ---------- */
-  .hpill { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 9px; border: 1px solid rgba(255,255,255,.07); background: rgba(255,255,255,.025);
-           font-size: 11.5px; color: #a1a1aa; white-space: nowrap; box-shadow: inset 0 1px 0 rgba(255,255,255,.05); }
-  .hpill b { color: #f4f4f5; font-weight: 600; }
+  .hpill { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 9px; border: 1px solid rgb(var(--ink-rgb) / .07); background: rgb(var(--ink-rgb) / .025);
+           font-size: 11.5px; color: var(--c-muted); white-space: nowrap; box-shadow: inset 0 1px 0 rgb(var(--ink-rgb) / .05); }
+  .hpill b { color: var(--c-ink); font-weight: 600; }
   .live-dot { width: 7px; height: 7px; border-radius: 99px; background: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.18), 0 0 10px rgba(16,185,129,.7); animation: breathe 2.4s ease-in-out infinite; }
   @keyframes breathe { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
 
@@ -112,68 +264,68 @@
   .kpi-pill { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; border-radius: 6px; font-size: 10.5px; font-weight: 600; background: color-mix(in srgb, var(--p) 13%, transparent); color: var(--p); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--p) 25%, transparent); }
   @media (max-width: 639px) { .kpi-pill { display: none; } .kpi { padding: 14px; } }
   .kpi-glow { position: absolute; inset: auto -30% -60% auto; width: 70%; height: 120%; background: radial-gradient(closest-side, color-mix(in srgb, var(--k) 14%, transparent), transparent); pointer-events: none; }
-  .meter { height: 6px; border-radius: 99px; background: rgba(255,255,255,.06); overflow: hidden; }
+  .meter { height: 6px; border-radius: 99px; background: rgb(var(--ink-rgb) / .06); overflow: hidden; }
   .meter > i { display: block; height: 100%; border-radius: 99px; background: var(--m, #10b981); box-shadow: 0 0 12px color-mix(in srgb, var(--m, #10b981) 70%, transparent); transition: width .5s cubic-bezier(.2,.8,.2,1); }
 
   /* ---------- Formulario por pasos ---------- */
-  .form-progress { position: absolute; inset: 0 0 auto 0; height: 2px; border-radius: 16px 16px 0 0; overflow: hidden; background: rgba(255,255,255,.04); }
+  .form-progress { position: absolute; inset: 0 0 auto 0; height: 2px; border-radius: 16px 16px 0 0; overflow: hidden; background: rgb(var(--ink-rgb) / .04); }
   .form-progress > i { display: block; height: 100%; background: linear-gradient(90deg, #10b981, #34d399); box-shadow: 0 0 12px rgba(16,185,129,.8); transition: width .45s cubic-bezier(.2,.8,.2,1); }
   .sec-head { margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
-  .sec-num { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; font: 600 11px "JetBrains Mono", monospace; color: #a1a1aa;
-             background: rgba(255,255,255,.04); box-shadow: inset 0 0 0 1px rgba(255,255,255,.09); transition: background .3s, color .3s, box-shadow .3s; }
+  .sec-num { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; font: 600 11px "JetBrains Mono", monospace; color: var(--c-muted);
+             background: rgb(var(--ink-rgb) / .04); box-shadow: inset 0 0 0 1px rgb(var(--ink-rgb) / .09); transition: background .3s, color .3s, box-shadow .3s; }
   .sec-num.done { color: #03140d; background: linear-gradient(180deg, #34d399, #10b981); box-shadow: 0 0 0 4px rgba(16,185,129,.12), 0 0 16px rgba(16,185,129,.35); animation: pop .45s cubic-bezier(.2,1.5,.4,1); }
   @keyframes pop { 0% { transform: scale(.55); } 60% { transform: scale(1.14); } 100% { transform: scale(1); } }
-  .sec-state { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #52525b; transition: color .3s; }
+  .sec-state { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--c-faint); transition: color .3s; }
   .sec-state.ok { color: #34d399; }
 
   /* ---------- Tarjetas de casa (consola de apuestas) ---------- */
-  .leg-card { position: relative; border-radius: 14px; overflow: hidden; background: linear-gradient(180deg, rgba(255,255,255,.028), rgba(255,255,255,.008)); border: 1px solid var(--line);
+  .leg-card { position: relative; border-radius: 14px; overflow: hidden; background: linear-gradient(180deg, rgb(var(--ink-rgb) / .028), rgb(var(--ink-rgb) / .008)); border: 1px solid var(--line);
               transition: border-color .25s ease, box-shadow .25s ease; }
-  .leg-card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--brand-line, rgba(255,255,255,.07)); transition: background .25s; }
-  .leg-card.has-brand { border-color: color-mix(in srgb, var(--brand-line) 35%, rgba(255,255,255,.07)); box-shadow: 0 -18px 40px -30px var(--brand-line) inset; }
-  .leg-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px 10px; border-bottom: 1px solid rgba(255,255,255,.05);
+  .leg-card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--brand-line, rgb(var(--ink-rgb) / .07)); transition: background .25s; }
+  .leg-card.has-brand { border-color: color-mix(in srgb, var(--brand-line) 35%, rgb(var(--ink-rgb) / .07)); box-shadow: 0 -18px 40px -30px var(--brand-line) inset; }
+  .leg-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px 10px; border-bottom: 1px solid rgb(var(--ink-rgb) / .05);
               background: linear-gradient(180deg, color-mix(in srgb, var(--brand-line, transparent) 13%, transparent), transparent); }
-  .leg-idx { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; font-size: 10.5px; font-weight: 700; color: #a1a1aa; background: rgba(255,255,255,.05); }
+  .leg-idx { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; font-size: 10.5px; font-weight: 700; color: var(--c-muted); background: rgb(var(--ink-rgb) / .05); }
   .leg-card.has-brand .leg-idx { color: var(--brand-fg); background: var(--brand-bg); box-shadow: inset 0 -2px 0 var(--brand-ac); }
-  .leg-title { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; font-weight: 600; color: #d4d4d8; }
-  .leg-prev { font-size: 12px; font-weight: 600; color: #71717a; }
+  .leg-title { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; font-weight: 600; color: var(--c-ink-3); }
+  .leg-prev { font-size: 12px; font-weight: 600; color: var(--c-faint); }
   .leg-body { padding: 12px 14px 14px; }
   .odd-wrap { display: flex; align-items: stretch; }
   .odd-wrap .inp-odd { border-radius: 0; position: relative; z-index: 1; }
-  .odd-step { width: 42px; flex-shrink: 0; display: grid; place-items: center; font: 500 20px "JetBrains Mono", monospace; color: #8b8f98; background: #0a0b0e; border: 1px solid rgba(255,255,255,.08);
+  .odd-step { width: 42px; flex-shrink: 0; display: grid; place-items: center; font: 500 20px "JetBrains Mono", monospace; color: var(--c-muted-2); background: var(--c-input); border: 1px solid rgb(var(--ink-rgb) / .08);
               transition: color .12s, background .12s; user-select: none; }
-  .odd-step:hover { color: #34d399; background: #0d1013; }
+  .odd-step:hover { color: #34d399; background: var(--c-input-2); }
   .odd-step:active { background: rgba(16,185,129,.12); }
   .odd-step:first-child { border-radius: 10px 0 0 10px; border-right: 0; }
   .odd-step:last-child { border-radius: 0 10px 10px 0; border-left: 0; }
-  .mini-step { height: 24px; padding: 0 7px; border-radius: 6px; font: 500 10.5px "JetBrains Mono", monospace; color: #8b8f98; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07); transition: color .12s, border-color .12s; }
+  .mini-step { height: 24px; padding: 0 7px; border-radius: 6px; font: 500 10.5px "JetBrains Mono", monospace; color: var(--c-muted-2); background: rgb(var(--ink-rgb) / .03); border: 1px solid rgb(var(--ink-rgb) / .07); transition: color .12s, border-color .12s; }
   .mini-step:hover { color: #34d399; border-color: rgba(52,211,153,.35); }
-  .qs { height: 28px; padding: 0 10px; border-radius: 8px; font: 500 12px "JetBrains Mono", monospace; color: #a1a1aa; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08); transition: all .12s; }
-  .qs:hover { color: #fff; border-color: rgba(255,255,255,.18); }
-  .qs.is-active { color: #6ee7b7; border-color: rgba(52,211,153,.45); background: rgba(16,185,129,.1); }
+  .qs { height: 28px; padding: 0 10px; border-radius: 8px; font: 500 12px "JetBrains Mono", monospace; color: var(--c-muted); background: rgb(var(--ink-rgb) / .03); border: 1px solid rgb(var(--ink-rgb) / .08); transition: all .12s; }
+  .qs:hover { color: var(--c-ink); border-color: rgb(var(--ink-rgb) / .18); }
+  .qs.is-active { color: var(--c-acc-text); border-color: rgba(52,211,153,.45); background: rgba(16,185,129,.1); }
   .flash-num { animation: flashnum .5s ease; }
   @keyframes flashnum { 0% { color: #34d399; text-shadow: 0 0 12px rgba(16,185,129,.8); } 100% { } }
 
   /* ---------- Marcas de casas de apuestas ---------- */
   .brand { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 6px; font-size: 12px; font-weight: 800; letter-spacing: -.01em; white-space: nowrap;
-           background: var(--bg); color: var(--fg); box-shadow: inset 0 -2px 0 var(--ac), 0 0 0 1px rgba(255,255,255,.10); }
+           background: var(--bg); color: var(--fg); box-shadow: inset 0 -2px 0 var(--ac), 0 0 0 1px rgb(var(--ink-rgb) / .10); }
   .brand.lg { height: 26px; padding: 0 10px; font-size: 13px; border-radius: 7px; }
-  .brand.xs { height: 18px; padding: 0 6px; font-size: 11px; border-radius: 5px; box-shadow: inset 0 -1.5px 0 var(--ac), 0 0 0 1px rgba(255,255,255,.10); }
+  .brand.xs { height: 18px; padding: 0 6px; font-size: 11px; border-radius: 5px; box-shadow: inset 0 -1.5px 0 var(--ac), 0 0 0 1px rgb(var(--ink-rgb) / .10); }
   .brand.neutral { --bg: #1f2228; --fg: #e4e4e7; --ac: #3f434b; }
   .bchip { position: relative; display: flex; align-items: center; justify-content: center; height: 40px; border-radius: 10px; font-size: 12.5px; font-weight: 800; letter-spacing: -.01em; min-width: 0;
-           background: var(--bg); color: var(--fg); box-shadow: inset 0 -3px 0 var(--ac), 0 0 0 1px rgba(255,255,255,.10); transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease; }
+           background: var(--bg); color: var(--fg); box-shadow: inset 0 -3px 0 var(--ac), 0 0 0 1px rgb(var(--ink-rgb) / .10); transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease; }
   .bchip:hover { transform: translateY(-1px); }
-  .bchip.is-sel { box-shadow: inset 0 -3px 0 var(--ac), 0 0 0 2px #060709, 0 0 0 4px #34d399, 0 8px 20px -8px rgba(16,185,129,.6); }
+  .bchip.is-sel { box-shadow: inset 0 -3px 0 var(--ac), 0 0 0 2px var(--page), 0 0 0 4px #34d399, 0 8px 20px -8px rgba(16,185,129,.6); }
   .bchip.is-sel::after { content: "✓"; position: absolute; top: -7px; right: -7px; width: 18px; height: 18px; border-radius: 99px; background: #34d399; color: #03140d; font-size: 11px; display: grid; place-items: center; font-weight: 900; }
   .bchip.is-off { opacity: .22; pointer-events: none; }
   .bchip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 4px; }
-  .bchip.more { --bg: transparent; --fg: #a1a1aa; --ac: transparent; box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 6px; }
-  .bchip.more.is-sel { --fg: #fff; box-shadow: 0 0 0 2px #060709, 0 0 0 4px #34d399; }
+  .bchip.more { --bg: transparent; --fg: var(--c-muted); --ac: transparent; box-shadow: inset 0 0 0 1px rgb(var(--ink-rgb) / .14); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 6px; }
+  .bchip.more.is-sel { --fg: var(--c-ink); box-shadow: 0 0 0 2px var(--page), 0 0 0 4px #34d399; }
   .pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
   .tag-live, .tag-pre { display: inline-flex; align-items: center; height: 16px; padding: 0 5px; border-radius: 4px; font: 700 9.5px "JetBrains Mono", monospace; letter-spacing: .04em; }
-  .tag-live { background: rgba(244,63,94,.16); color: #fda4af; }
-  .tag-pre { background: rgba(56,189,248,.12); color: #7dd3fc; }
-  input[type="color"] { width: 30px; height: 26px; padding: 0; border: 1px solid rgba(255,255,255,.12); border-radius: 6px; background: transparent; cursor: pointer; }
+  .tag-live { background: rgba(244,63,94,.16); color: var(--c-live); }
+  .tag-pre { background: rgba(56,189,248,.12); color: var(--c-pre); }
+  input[type="color"] { width: 30px; height: 26px; padding: 0; border: 1px solid rgb(var(--ink-rgb) / .12); border-radius: 6px; background: transparent; cursor: pointer; }
   input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
   input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
 
@@ -192,39 +344,39 @@
 
   /* ---------- Boleto (bet slip) ---------- */
   #ticket { overflow: hidden; }
-  .slip-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; border-bottom: 1px solid rgba(255,255,255,.06);
-              background: linear-gradient(180deg, rgba(255,255,255,.03), transparent); }
-  .slip-leg { position: relative; display: flex; align-items: stretch; gap: 12px; padding: 12px 12px 12px 16px; border-radius: 12px; background: rgba(255,255,255,.022); border: 1px solid rgba(255,255,255,.06); overflow: hidden; }
+  .slip-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; border-bottom: 1px solid rgb(var(--ink-rgb) / .06);
+              background: linear-gradient(180deg, rgb(var(--ink-rgb) / .03), transparent); }
+  .slip-leg { position: relative; display: flex; align-items: stretch; gap: 12px; padding: 12px 12px 12px 16px; border-radius: 12px; background: rgb(var(--ink-rgb) / .022); border: 1px solid rgb(var(--ink-rgb) / .06); overflow: hidden; }
   .slip-leg::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--c, #3f3f46); box-shadow: 0 0 14px var(--c, transparent); }
   .slip-leg.win { border-color: rgba(52,211,153,.35); background: rgba(16,185,129,.06); }
-  .perf { position: relative; height: 1px; margin: 4px 0; background-image: linear-gradient(90deg, rgba(255,255,255,.14) 55%, transparent 0); background-size: 9px 1px; }
-  .perf::before, .perf::after { content: ""; position: absolute; top: -9px; width: 18px; height: 18px; border-radius: 99px; background: #060709; box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
+  .perf { position: relative; height: 1px; margin: 4px 0; background-image: linear-gradient(90deg, rgb(var(--ink-rgb) / .14) 55%, transparent 0); background-size: 9px 1px; }
+  .perf::before, .perf::after { content: ""; position: absolute; top: -9px; width: 18px; height: 18px; border-radius: 99px; background: var(--page); box-shadow: inset 0 0 0 1px rgb(var(--ink-rgb) / .07); }
   .perf::before { left: -10px; } .perf::after { right: -10px; }
-  .rline { display: flex; align-items: baseline; gap: 8px; font-size: 12.5px; color: #a1a1aa; }
-  .rline .dots { flex: 1; min-width: 12px; border-bottom: 1px dotted rgba(255,255,255,.13); transform: translateY(-3px); }
-  .dist { display: flex; height: 10px; gap: 2px; border-radius: 99px; overflow: hidden; background: rgba(255,255,255,.04); }
+  .rline { display: flex; align-items: baseline; gap: 8px; font-size: 12.5px; color: var(--c-muted); }
+  .rline .dots { flex: 1; min-width: 12px; border-bottom: 1px dotted rgb(var(--ink-rgb) / .13); transform: translateY(-3px); }
+  .dist { display: flex; height: 10px; gap: 2px; border-radius: 99px; overflow: hidden; background: rgb(var(--ink-rgb) / .04); }
   .dist > i { display: block; height: 100%; transition: width .45s cubic-bezier(.2,.8,.2,1); }
   .dist-lbl { display: flex; gap: 2px; margin-top: 6px; }
-  .dist-lbl > span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 10.5px; color: #8b8f98; }
-  .copy-btn { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 7px; border-radius: 7px; font-size: 10.5px; font-weight: 600; color: #8b8f98; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.03); transition: all .15s; }
-  .copy-btn:hover { color: #fff; border-color: rgba(255,255,255,.18); }
+  .dist-lbl > span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 10.5px; color: var(--c-muted-2); }
+  .copy-btn { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 7px; border-radius: 7px; font-size: 10.5px; font-weight: 600; color: var(--c-muted-2); border: 1px solid rgb(var(--ink-rgb) / .08); background: rgb(var(--ink-rgb) / .03); transition: all .15s; }
+  .copy-btn:hover { color: var(--c-ink); border-color: rgb(var(--ink-rgb) / .18); }
   .copy-btn.ok { color: #34d399; border-color: rgba(52,211,153,.45); background: rgba(16,185,129,.12); animation: pop .35s cubic-bezier(.2,1.5,.4,1); }
   .btn-save { position: relative; overflow: hidden; display: flex; height: 50px; width: 100%; align-items: center; justify-content: center; gap: 8px; border-radius: 12px; font-size: 14px; font-weight: 700; transition: transform .1s, filter .15s, box-shadow .2s; }
-  .btn-save.ready { color: #03140d; background: linear-gradient(180deg, #34d399, #10b981); box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 0 0 1px rgba(16,185,129,.6), 0 14px 30px -14px rgba(16,185,129,.9); }
+  .btn-save.ready { color: #03140d; background: linear-gradient(180deg, #34d399, #10b981); box-shadow: inset 0 1px 0 rgb(var(--ink-rgb) / .35), 0 0 0 1px rgba(16,185,129,.6), 0 14px 30px -14px rgba(16,185,129,.9); }
   .btn-save.ready:hover { filter: brightness(1.07); }
-  .btn-save.ready::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,.35) 50%, transparent 65%); transform: translateX(-120%); animation: shine 3.2s ease-in-out infinite; }
+  .btn-save.ready::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 35%, rgb(var(--ink-rgb) / .35) 50%, transparent 65%); transform: translateX(-120%); animation: shine 3.2s ease-in-out infinite; }
   .btn-save:active { transform: scale(.985); }
-  .btn-save.wait { color: #71717a; background: rgba(255,255,255,.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); cursor: not-allowed; }
+  .btn-save.wait { color: var(--c-faint); background: rgb(var(--ink-rgb) / .05); box-shadow: inset 0 0 0 1px rgb(var(--ink-rgb) / .06); cursor: not-allowed; }
   @keyframes shine { 0%, 55% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
   .flash-ok { animation: flashok 1s ease; }
-  @keyframes flashok { 0% { box-shadow: inset 0 1px 0 0 rgba(255,255,255,.08); } 25% { box-shadow: 0 0 0 2px rgba(52,211,153,.7), 0 0 48px rgba(16,185,129,.45); } 100% { box-shadow: inset 0 1px 0 0 rgba(255,255,255,.08); } }
+  @keyframes flashok { 0% { box-shadow: inset 0 1px 0 0 rgb(var(--ink-rgb) / .08); } 25% { box-shadow: 0 0 0 2px rgba(52,211,153,.7), 0 0 48px rgba(16,185,129,.45); } 100% { box-shadow: inset 0 1px 0 0 rgb(var(--ink-rgb) / .08); } }
 
   /* ---------- Tabla de historial ---------- */
   .tbl-wrap { position: relative; max-height: 74vh; overflow: auto; }
-  .tbl-wrap thead th { position: sticky; top: 0; z-index: 10; background: rgba(12,14,18,.95); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: inset 0 -1px 0 rgba(255,255,255,.07); }
-  .tbl-wrap tfoot td { position: sticky; bottom: 0; z-index: 9; background: rgba(12,14,18,.96); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
+  .tbl-wrap thead th { position: sticky; top: 0; z-index: 10; background: var(--c-panel-solid); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: inset 0 -1px 0 rgb(var(--ink-rgb) / .07); }
+  .tbl-wrap tfoot td { position: sticky; bottom: 0; z-index: 9; background: var(--c-panel-solid); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: inset 0 1px 0 rgb(var(--ink-rgb) / .08); }
   .tbl-wrap tbody tr { transition: background .12s; }
-  .tbl-wrap tbody tr:hover { background: rgba(255,255,255,.022); }
+  .tbl-wrap tbody tr:hover { background: rgb(var(--ink-rgb) / .022); }
   .legs { display: grid; gap: 3px; }
   .leg-row { display: grid; grid-template-columns: 88px 60px 82px minmax(120px, 1fr); align-items: center; column-gap: 10px; padding: 3px 8px; border-radius: 8px; border: 1px solid transparent; }
   .leg-row.win { background: rgba(16,185,129,.075); border-color: rgba(52,211,153,.25); }
@@ -232,19 +384,19 @@
 
   /* ---------- Combobox ---------- */
   .combo { position: relative; }
-  .combo .chev { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #71717a; }
+  .combo .chev { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--c-faint); }
   .combo .inp { padding-right: 30px; }
-  #combo-pop { position: fixed; z-index: 95; max-height: 320px; overflow-y: auto; padding: 4px; border-radius: 12px; background: rgba(16,19,24,.98); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
-               border: 1px solid rgba(255,255,255,.10); box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 24px 60px -12px rgba(0,0,0,.85); }
-  .combo-group { padding: 8px 10px 4px; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #5b5f68; }
-  .combo-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 10px; border-radius: 8px; font-size: 13px; color: #e4e4e7; cursor: pointer; }
-  .combo-item:hover, .combo-item.is-active { background: rgba(255,255,255,.07); }
-  .combo-item.is-sel { color: #6ee7b7; }
-  .combo-hint { flex-shrink: 0; font: 400 10.5px "JetBrains Mono", monospace; color: #5b5f68; }
+  #combo-pop { position: fixed; z-index: 95; max-height: 320px; overflow-y: auto; padding: 4px; border-radius: 12px; background: var(--c-popover); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+               border: 1px solid rgb(var(--ink-rgb) / .10); box-shadow: var(--c-shadow-pop); }
+  .combo-group { padding: 8px 10px 4px; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--c-faint); }
+  .combo-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 10px; border-radius: 8px; font-size: 13px; color: var(--c-ink-2); cursor: pointer; }
+  .combo-item:hover, .combo-item.is-active { background: rgb(var(--ink-rgb) / .07); }
+  .combo-item.is-sel { color: var(--c-acc-text); }
+  .combo-hint { flex-shrink: 0; font: 400 10.5px "JetBrains Mono", monospace; color: var(--c-faint); }
 
   /* ---------- Varios ---------- */
   ::-webkit-scrollbar { width: 9px; height: 9px; }
-  ::-webkit-scrollbar-thumb { background: #22252b; border-radius: 9px; border: 2px solid #060709; }
+  ::-webkit-scrollbar-thumb { background: var(--c-scroll); border-radius: 9px; border: 2px solid var(--page); }
   ::-webkit-scrollbar-track { background: transparent; }
   .view { animation: viewIn .25s ease both; }
   @keyframes viewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
@@ -263,85 +415,158 @@
 </head>
 <body class="min-h-screen font-sans text-zinc-200 antialiased">
 
-<!-- ============ CABECERA ============ -->
-<header class="sticky top-0 z-40 border-b border-white/[0.06] bg-[#060709]/80 backdrop-blur-xl">
-  <div class="mx-auto max-w-7xl px-4 sm:px-6">
-    <div class="flex h-16 items-center gap-3">
-      <a href="#calc" data-tab="calc" class="flex shrink-0 items-center gap-2.5">
-        <div class="grid h-9 w-9 place-items-center rounded-[10px] bg-gradient-to-b from-emerald-300 to-emerald-500 text-[#03140d] shadow-[0_0_0_1px_rgba(16,185,129,.5),0_8px_20px_-8px_rgba(16,185,129,.8)]"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div>
-        <div class="leading-tight">
-          <div class="text-[15px] font-bold tracking-tight text-white">SureTrack</div>
-          <div class="hidden font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 sm:block">Arbitraje deportivo</div>
-        </div>
-      </a>
+<a href="#main" class="skip-link">Saltar al contenido</a>
+<div id="app">
 
-      <nav class="ml-4 hidden items-center gap-1 rounded-xl border border-white/[0.06] bg-white/[0.02] p-1 md:flex">
-        <button class="tab-btn" data-tab="calc">Registrar</button>
-        <button class="tab-btn" data-tab="history">Historial</button>
-        <button class="tab-btn" data-tab="subs">Suscripción</button>
-      </nav>
-
-      <div id="hdr-status" class="ml-auto hidden items-center gap-2 lg:flex" aria-label="Estado general"></div>
-
-      <div class="ml-auto flex items-center gap-2 lg:ml-2">
-        <button id="btn-bell" class="btn-ghost relative !w-10 !px-0" title="Surebets por resolver" aria-label="Surebets por resolver">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-          <span id="bell-count" class="absolute -right-1.5 -top-1.5 hidden h-5 min-w-5 place-items-center rounded-full bg-amber-400 px-1 font-mono text-[11px] font-bold text-[#1a1200] shadow-[0_0_12px_rgba(251,191,36,.6)]"></span>
-        </button>
-        <!-- Instalar como app. Oculto si ya está instalada o el navegador no lo permite -->
-        <button id="btn-install" class="btn-ghost hidden !border-emerald-400/25 !text-emerald-300" title="Instalar SureTrack como aplicación" aria-label="Instalar App">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
-          <span class="hidden sm:inline">Instalar App</span>
-        </button>
-        <!-- Cuenta (nube). Oculto si la nube no está configurada -->
-        <div id="acc-box" class="relative hidden">
-          <button id="btn-account" class="btn-ghost" aria-haspopup="true" aria-expanded="false" title="Tu cuenta"></button>
-          <div id="acc-menu" class="absolute right-0 z-50 mt-2 hidden w-72 rounded-xl border border-white/10 bg-[#101318]/95 p-1.5 shadow-2xl shadow-black/60 backdrop-blur-xl"></div>
-        </div>
-        <div class="relative">
-          <button id="btn-data-menu" class="btn-ghost" aria-haspopup="true" aria-expanded="false">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
-            <span class="hidden sm:inline">Datos</span>
-          </button>
-          <div id="data-menu" class="absolute right-0 z-50 mt-2 hidden w-72 rounded-xl border border-white/10 bg-[#101318]/95 p-1.5 shadow-2xl shadow-black/60 backdrop-blur-xl">
-            <div class="px-3 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-600">Copia de seguridad</div>
-            <button class="menu-item" data-menu="export-json">Exportar todo <span class="ml-auto font-mono text-xs text-zinc-500">.json</span></button>
-            <button class="menu-item" data-menu="export-csv">Exportar surebets <span class="ml-auto font-mono text-xs text-zinc-500">.csv</span></button>
-            <button class="menu-item" data-menu="import">Importar archivo <span class="ml-auto font-mono text-xs text-zinc-500">.json / .csv</span></button>
-            <div class="my-1.5 h-px bg-white/[0.06]"></div>
-            <div class="px-3 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-600">Preferencias</div>
-            <button class="menu-item" data-menu="settings">Casas favoritas y colores</button>
-            <div class="my-1.5 h-px bg-white/[0.06]"></div>
-            <button class="menu-item" data-menu="demo">Cargar datos de ejemplo</button>
-            <button class="menu-item !text-rose-300" data-menu="wipe">Borrar todos los datos</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <nav class="-mx-1 flex gap-1 overflow-x-auto px-1 pb-3 md:hidden">
-      <button class="tab-btn" data-tab="calc">Registrar</button>
-      <button class="tab-btn" data-tab="history">Historial</button>
-      <button class="tab-btn" data-tab="subs">Suscripción</button>
-    </nav>
+<!-- ============ BARRA LATERAL ============ -->
+<aside id="sidebar" class="sb" aria-label="Menú principal">
+  <div class="sb-head">
+    <a href="#panel" data-tab="panel" class="sb-brand" title="SureTrack · Panel">
+      <span class="logo-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></span>
+      <span class="sb-label min-w-0 leading-tight">
+        <span class="block text-[17px] font-bold tracking-tight text-white">SureTrack</span>
+        <span class="block text-[14px] text-zinc-500">Arbitraje deportivo</span>
+      </span>
+    </a>
+    <button id="sb-close" type="button" class="icon-44 lg:hidden" aria-label="Cerrar menú">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
   </div>
-</header>
+
+  <nav class="sb-nav" aria-label="Apartados">
+    <a href="#panel" data-tab="panel" class="nav-item" title="Panel">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      <span class="sb-label">Panel</span>
+    </a>
+    <a href="#calc" data-tab="calc" class="nav-item" title="Registrar surebet">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+      <span class="sb-label">Registrar surebet</span>
+    </a>
+    <a href="#history" data-tab="history" class="nav-item" title="Historial">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
+      <span class="sb-label">Historial</span>
+      <span class="nav-badge hidden" data-bell-count></span>
+    </a>
+    <a href="#stats" data-tab="stats" class="nav-item" title="Estadísticas">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16v-4M12 16V8M17 16v-7"/></svg>
+      <span class="sb-label">Estadísticas</span>
+    </a>
+    <a href="#subs" data-tab="subs" class="nav-item" title="Suscripciones">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg>
+      <span class="sb-label">Suscripciones</span>
+    </a>
+    <div class="sb-sep" role="separator"></div>
+    <a href="#profile" data-tab="profile" class="nav-item" title="Perfil">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      <span class="sb-label">Perfil</span>
+    </a>
+    <a href="#settings" data-tab="settings" class="nav-item" title="Ajustes">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+      <span class="sb-label">Ajustes</span>
+    </a>
+    <a href="#account" data-tab="account" class="nav-item" title="Cuenta">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      <span class="sb-label">Cuenta</span>
+    </a>
+  </nav>
+
+  <div class="sb-foot">
+    <!-- Instalar como app. Oculto si ya está instalada o el navegador no lo permite -->
+    <button id="btn-install" type="button" data-install class="nav-item nav-install hidden" title="Instalar SureTrack como aplicación" aria-label="Instalar App">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+      <span class="sb-label">Instalar App</span>
+    </button>
+    <div class="sb-tools">
+      <div class="theme-seg sb-label" role="group" aria-label="Tema">
+        <button type="button" data-theme-set="system" title="Tema según el sistema" aria-label="Tema según el sistema"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></button>
+        <button type="button" data-theme-set="light" title="Tema claro" aria-label="Tema claro"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+        <button type="button" data-theme-set="dark" title="Tema oscuro" aria-label="Tema oscuro"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+      </div>
+      <button id="btn-theme-cycle" type="button" class="icon-44 sb-only-collapsed" aria-label="Cambiar tema"></button>
+      <button id="sb-collapse" type="button" class="icon-44 hidden lg:grid" aria-label="Plegar menú" title="Plegar menú">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M16 15l-3-3 3-3"/></svg>
+      </button>
+    </div>
+    <!-- Cuenta (nube). Se quita si la nube no está configurada -->
+    <div id="acc-box" class="relative">
+      <button id="btn-account" type="button" class="user-chip" aria-haspopup="true" aria-expanded="false" title="Tu cuenta"></button>
+      <div id="acc-menu" class="absolute bottom-full left-0 z-50 mb-2 hidden w-72 rounded-xl border border-white/10 bg-[var(--c-popover)] p-1.5 shadow-2xl shadow-black/40 backdrop-blur-xl"></div>
+    </div>
+    <div id="local-chip" class="user-chip hidden" title="Modo local: los datos se guardan solo en este navegador">
+      <span class="avatar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span>
+      <span class="sb-label min-w-0 text-left"><span class="block truncate font-semibold text-zinc-100">Modo local</span><span class="block truncate text-[14px] text-zinc-500">Solo este navegador</span></span>
+    </div>
+  </div>
+</aside>
+<div id="sb-backdrop" class="sb-backdrop" hidden></div>
+
+<!-- ============ CONTENIDO ============ -->
+<div class="app-main">
+  <header id="topbar" class="topbar">
+    <button id="sb-open" type="button" class="icon-44 lg:hidden" aria-label="Abrir menú" aria-controls="sidebar" aria-expanded="false">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <h1 id="page-title" class="min-w-0 truncate text-[24px] font-semibold tracking-tight text-white">Panel</h1>
+    <div class="ml-auto flex shrink-0 items-center gap-2">
+      <a id="top-new" href="#calc" data-tab="calc" class="btn-primary hidden sm:inline-flex">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Registrar surebet
+      </a>
+      <button id="top-install" type="button" data-install class="icon-44 hidden !text-[var(--c-acc-text)]" title="Instalar SureTrack como aplicación" aria-label="Instalar App">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+      </button>
+      <button id="btn-bell" type="button" class="icon-44 relative" title="Surebets por resolver" aria-label="Surebets por resolver">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        <span id="bell-count" class="absolute -right-1 -top-1 hidden h-5 min-w-5 place-items-center rounded-full bg-amber-400 px-1 font-mono text-[12px] font-bold text-[#1a1200]"></span>
+      </button>
+    </div>
+  </header>
 
 <input type="file" id="file-import" accept=".json,.csv,application/json,text/csv" class="hidden">
 
-<main class="mx-auto max-w-7xl space-y-5 px-4 pb-28 pt-6 sm:px-6 lg:pb-8">
-
-  <!-- KPIs -->
-  <section id="kpis" class="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4" aria-label="Indicadores"></section>
+<main id="main" class="space-y-6" tabindex="-1">
 
   <!-- Recordatorio de surebets por resolver -->
   <div id="overdue-banner" class="hidden"></div>
 
+  <!-- ============ PANEL ============ -->
+  <section data-view="panel" class="view hidden space-y-6">
+    <section id="kpis" class="grid grid-cols-2 gap-4 xl:grid-cols-4" aria-label="Indicadores"></section>
+    <div id="hdr-status" class="flex flex-wrap items-center gap-2" aria-label="Estado general"></div>
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+      <div class="card p-6 xl:col-span-2">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 class="h2">Últimas surebets</h2>
+          <a href="#history" data-tab="history" class="link-acc">Ver historial →</a>
+        </div>
+        <div id="recent" class="mt-4"></div>
+      </div>
+      <div class="card p-6">
+        <h2 class="h2">Accesos rápidos</h2>
+        <div class="mt-4 grid gap-3">
+          <a href="#calc" data-tab="calc" class="quick-link">
+            <span class="quick-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg></span>
+            <span class="min-w-0"><span class="block font-semibold text-zinc-100">Registrar surebet</span><span class="block text-zinc-500">Calcula los stakes y guárdala</span></span>
+          </a>
+          <a href="#stats" data-tab="stats" class="quick-link">
+            <span class="quick-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16v-4M12 16V8M17 16v-7"/></svg></span>
+            <span class="min-w-0"><span class="block font-semibold text-zinc-100">Estadísticas</span><span class="block text-zinc-500">Evolución, deportes y casas</span></span>
+          </a>
+          <a href="#subs" data-tab="subs" class="quick-link">
+            <span class="quick-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span>
+            <span class="min-w-0"><span class="block font-semibold text-zinc-100">Suscripciones</span><span class="block text-zinc-500">Coste, amortización y ROI</span></span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ VISTA 1 · REGISTRAR ============ -->
   <section data-view="calc" class="view">
-    <div class="grid grid-cols-1 gap-5 lg:grid-cols-12">
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-12">
 
       <!-- Formulario -->
-      <div class="lg:col-span-7 xl:col-span-8">
+      <div class="xl:col-span-7 2xl:col-span-8">
         <div class="card divide-y divide-white/[0.06]">
           <div class="form-progress" aria-hidden="true"><i id="form-progress-bar" style="width:0%"></i></div>
           <div id="edit-banner" class="hidden"></div>
@@ -470,7 +695,7 @@
                 </div>
               </div>
               <div class="flex items-center justify-center" id="swap-wrap">
-                <button id="btn-swap" title="Intercambiar casas" aria-label="Intercambiar casas" class="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-[#0a0b0e] text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,.06)] transition hover:rotate-180 hover:border-emerald-400/40 hover:text-emerald-300">
+                <button id="btn-swap" title="Intercambiar casas" aria-label="Intercambiar casas" class="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-[var(--c-input)] text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,.06)] transition hover:rotate-180 hover:border-emerald-400/40 hover:text-emerald-300">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4 3 8l4 4"/><path d="M3 8h18"/><path d="m17 20 4-4-4-4"/><path d="M21 16H3"/></svg>
                 </button>
               </div>
@@ -603,16 +828,9 @@
       </div>
 
       <!-- Boleto -->
-      <div class="space-y-5 lg:col-span-5 xl:col-span-4">
-        <div class="space-y-5 lg:sticky lg:top-24">
+      <div class="space-y-6 xl:col-span-5 2xl:col-span-4">
+        <div class="space-y-6 xl:sticky xl:top-[96px]">
           <div class="card" id="ticket" aria-live="polite"></div>
-          <div class="card p-5">
-            <div class="flex items-center justify-between">
-              <h2 class="h2">Últimas registradas</h2>
-              <button class="text-xs font-medium text-emerald-300 hover:text-emerald-200" data-tab="history">Ver todas →</button>
-            </div>
-            <div id="recent" class="mt-3"></div>
-          </div>
         </div>
       </div>
     </div>
@@ -658,35 +876,6 @@
     <div id="f-sub-head" class="hidden"></div>
     <div id="f-summary" class="grid grid-cols-2 gap-3 md:grid-cols-4"></div>
 
-    <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
-      <div class="card p-5 lg:col-span-2">
-        <h3 class="h2">Evolución del beneficio</h3>
-        <p class="sub">Bruto acumulado frente a neto tras la suscripción · por fecha de realización</p>
-        <div class="relative mt-4 h-64 sm:h-72"><canvas id="ch-cum" aria-label="Evolución del beneficio acumulado"></canvas><div class="chart-empty absolute inset-0 hidden place-items-center text-sm text-zinc-500"></div></div>
-      </div>
-      <div class="card p-5">
-        <h3 class="h2" id="ch-daily-title">Beneficio por día</h3>
-        <p class="sub">Surebets cobradas</p>
-        <div class="relative mt-4 h-64 sm:h-72"><canvas id="ch-daily" aria-label="Beneficio por periodo"></canvas><div class="chart-empty absolute inset-0 hidden place-items-center text-sm text-zinc-500"></div></div>
-      </div>
-      <div class="card p-5 lg:col-span-2">
-        <div class="flex flex-wrap items-start justify-between gap-3">
-          <div><h3 class="h2" id="ch-sport-title">Beneficio por deporte</h3><p class="sub">Top 10 · surebets cobradas</p></div>
-          <div class="seg !p-0.5" id="dim-seg">
-            <button data-dim="sport">Deporte</button>
-            <button data-dim="group">Categoría</button>
-            <button data-dim="market">Mercado</button>
-          </div>
-        </div>
-        <div class="relative mt-4 h-72"><canvas id="ch-sport" aria-label="Beneficio por deporte, categoría o mercado"></canvas><div class="chart-empty absolute inset-0 hidden place-items-center text-sm text-zinc-500"></div></div>
-      </div>
-      <div class="card p-5">
-        <h3 class="h2">Dinero movido por casa</h3>
-        <p class="sub">Suma de stakes (sin nulas)</p>
-        <div class="relative mt-4 h-72"><canvas id="ch-books" aria-label="Dinero por casa de apuestas"></canvas><div class="chart-empty absolute inset-0 hidden place-items-center text-sm text-zinc-500"></div></div>
-      </div>
-    </div>
-
     <div class="card overflow-hidden">
       <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] px-5 py-4">
         <div><h3 class="h2">Registro de surebets</h3><p class="sub num" id="table-count"></p></div>
@@ -714,10 +903,46 @@
     </div>
   </section>
 
+
+  <!-- ============ ESTADÍSTICAS ============ -->
+  <section data-view="stats" class="view hidden space-y-6">
+    <div id="stats-empty" class="hidden"></div>
+    <p class="text-zinc-400">Todo tu historial. Los filtros por periodo, tipo y suscripción y las tablas por casa, deporte y mercado llegan en la siguiente fase.</p>
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+      <div class="card p-5 xl:col-span-2">
+        <h3 class="h2">Evolución del beneficio</h3>
+        <p class="sub">Bruto acumulado frente a neto tras la suscripción · por fecha de realización</p>
+        <div class="relative mt-4 h-64 sm:h-72"><canvas id="ch-cum" aria-label="Evolución del beneficio acumulado"></canvas><div class="chart-empty absolute inset-0 hidden place-items-center text-sm text-zinc-500"></div></div>
+      </div>
+      <div class="card p-5">
+        <h3 class="h2" id="ch-daily-title">Beneficio por día</h3>
+        <p class="sub">Surebets cobradas</p>
+        <div class="relative mt-4 h-64 sm:h-72"><canvas id="ch-daily" aria-label="Beneficio por periodo"></canvas><div class="chart-empty absolute inset-0 hidden place-items-center text-sm text-zinc-500"></div></div>
+      </div>
+      <div class="card p-5 xl:col-span-2">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div><h3 class="h2" id="ch-sport-title">Beneficio por deporte</h3><p class="sub">Top 10 · surebets cobradas</p></div>
+          <div class="seg !p-0.5" id="dim-seg">
+            <button data-dim="sport">Deporte</button>
+            <button data-dim="group">Categoría</button>
+            <button data-dim="market">Mercado</button>
+          </div>
+        </div>
+        <div class="relative mt-4 h-72"><canvas id="ch-sport" aria-label="Beneficio por deporte, categoría o mercado"></canvas><div class="chart-empty absolute inset-0 hidden place-items-center text-sm text-zinc-500"></div></div>
+      </div>
+      <div class="card p-5">
+        <h3 class="h2">Dinero movido por casa</h3>
+        <p class="sub">Suma de stakes (sin nulas)</p>
+        <div class="relative mt-4 h-72"><canvas id="ch-books" aria-label="Dinero por casa de apuestas"></canvas><div class="chart-empty absolute inset-0 hidden place-items-center text-sm text-zinc-500"></div></div>
+      </div>
+    </div>
+
+  </section>
+
   <!-- ============ VISTA 3 · SUSCRIPCIÓN ============ -->
   <section data-view="subs" class="view hidden">
-    <div class="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-12">
-      <div class="space-y-4 sm:space-y-6 lg:col-span-5">
+    <div class="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-12">
+      <div class="space-y-4 sm:space-y-6 xl:col-span-5">
         <div class="card p-5 sm:p-6">
           <h2 class="h2" id="sub-form-title">Añadir suscripción</h2>
           <p class="sub">El coste se resta del beneficio de los picks vinculados para calcular el neto real.</p>
@@ -794,22 +1019,12 @@
         </div>
 
         <div class="card p-5 sm:p-6">
-          <h2 class="h2">Cómo imputar el coste</h2>
-          <p class="sub">Afecta a «Coste de suscripciones», «Beneficio neto real» y al ROI de cada suscripción.</p>
-          <div class="mt-4 space-y-2">
-            <button class="opt-card" data-costmode="prorated">
-              <div class="text-sm font-medium text-zinc-100">Prorrateado por días activos</div>
-              <div class="mt-0.5 text-xs text-zinc-500">Imputa solo los días consumidos. Ej.: 3 días de un plan de 7 días a 24,99 € = 10,71 €. Los días congelados no cuentan.</div>
-            </button>
-            <button class="opt-card" data-costmode="paid">
-              <div class="text-sm font-medium text-zinc-100">Pagado por adelantado</div>
-              <div class="mt-0.5 text-xs text-zinc-500">Imputa el periodo completo el día que empieza. Refleja la caja real.</div>
-            </button>
-          </div>
+          <h2 class="h2">Cómo se imputa el coste</h2>
+          <p class="mt-2 text-zinc-400"><span id="subs-costmode" class="font-semibold text-zinc-100"></span>. <a href="#settings" data-tab="settings" class="link-acc">Cambiar en Ajustes</a></p>
         </div>
       </div>
 
-      <div class="space-y-4 sm:space-y-6 lg:col-span-7">
+      <div class="space-y-4 sm:space-y-6 xl:col-span-7">
         <div class="card p-5 sm:p-6" id="amort"></div>
         <div class="card p-5 sm:p-6">
           <div class="flex flex-wrap items-start justify-between gap-2">
@@ -821,17 +1036,126 @@
     </div>
   </section>
 
+
+  <!-- ============ PERFIL ============ -->
+  <section data-view="profile" class="view hidden">
+    <div class="mx-auto max-w-3xl space-y-6">
+      <div class="card p-6" id="profile-card"></div>
+    </div>
+  </section>
+
+  <!-- ============ AJUSTES ============ -->
+  <section data-view="settings" class="view hidden">
+    <div class="mx-auto max-w-3xl space-y-6">
+      <div class="card p-6">
+        <h2 class="h2">Tema</h2>
+        <p class="sub">Se guarda con tu cuenta y se aplica en todos tus dispositivos.</p>
+        <div class="mt-4 grid gap-3 sm:grid-cols-3">
+          <button type="button" class="opt-card" data-theme-set="system"><span class="block font-semibold text-zinc-100">Según el sistema</span><span class="mt-1 block text-zinc-500">Claro u oscuro como tu dispositivo</span></button>
+          <button type="button" class="opt-card" data-theme-set="light"><span class="block font-semibold text-zinc-100">Claro</span><span class="mt-1 block text-zinc-500">Fondo blanco</span></button>
+          <button type="button" class="opt-card" data-theme-set="dark"><span class="block font-semibold text-zinc-100">Oscuro</span><span class="mt-1 block text-zinc-500">Fondo negro</span></button>
+        </div>
+      </div>
+      <div class="card p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div><h2 class="h2">Casas favoritas y colores</h2><p class="sub">Tus favoritas salen como botones directos al registrar.</p></div>
+          <button type="button" class="btn-ghost" data-menu="settings">Editar</button>
+        </div>
+        <div id="set-books" class="mt-4 flex flex-wrap gap-2"></div>
+      </div>
+      <div class="card p-6">
+        <h2 class="h2">Redondeo por defecto</h2>
+        <p class="sub">Para las surebets nuevas. En cada surebet puedes cambiarlo en el paso «Importe».</p>
+        <select id="set-round" class="inp mt-4 sm:!w-72" aria-label="Redondeo por defecto">
+          <option value="0">Sin redondeo</option>
+          <option value="0.1">A 0,10 €</option>
+          <option value="0.5">A 0,50 €</option>
+          <option value="1">A 1 €</option>
+          <option value="5">A 5 €</option>
+        </select>
+      </div>
+      <div class="card p-6">
+        <h2 class="h2">Cómo imputar el coste de las suscripciones</h2>
+        <p class="sub">Afecta a «Coste de suscripciones», «Beneficio neto real» y al ROI de cada suscripción.</p>
+        <div class="mt-4 grid gap-3">
+          <button type="button" class="opt-card" data-costmode="prorated">
+            <span class="block font-semibold text-zinc-100">Prorrateado por días activos</span>
+            <span class="mt-1 block text-zinc-500">Imputa solo los días consumidos. Ej.: 3 días de un plan de 7 días a 24,99 € = 10,71 €. Los días congelados no cuentan.</span>
+          </button>
+          <button type="button" class="opt-card" data-costmode="paid">
+            <span class="block font-semibold text-zinc-100">Pagado por adelantado</span>
+            <span class="mt-1 block text-zinc-500">Imputa el periodo completo el día que empieza. Refleja la caja real.</span>
+          </button>
+        </div>
+      </div>
+      <p class="text-center text-zinc-500" id="set-version"></p>
+    </div>
+  </section>
+
+  <!-- ============ CUENTA ============ -->
+  <section data-view="account" class="view hidden">
+    <div class="mx-auto max-w-3xl space-y-6">
+      <div class="card p-6" id="acct-session"></div>
+      <div class="card p-6">
+        <h2 class="h2">Copia de seguridad</h2>
+        <p class="sub" id="acct-backup"></p>
+        <div class="mt-4 flex flex-wrap gap-3">
+          <button type="button" class="btn-ghost" data-menu="export-json">Exportar todo (.json)</button>
+          <button type="button" class="btn-ghost" data-menu="export-csv">Exportar surebets (.csv)</button>
+          <button type="button" class="btn-ghost" data-menu="import">Importar archivo (.json / .csv)</button>
+        </div>
+      </div>
+      <div class="card p-6" id="acct-install"></div>
+      <div class="card p-6">
+        <h2 class="h2">Zona de riesgo</h2>
+        <p class="sub">Exporta una copia antes de usar estas opciones.</p>
+        <div class="mt-4 flex flex-wrap gap-3">
+          <button type="button" class="btn-ghost" data-menu="demo">Cargar datos de ejemplo</button>
+          <button type="button" class="btn-ghost !border-rose-400/40 !text-rose-300" data-menu="wipe">Borrar todos los datos</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
 </main>
 
-<footer class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 pb-10 pt-2 text-xs text-zinc-600 sm:px-6">
+<footer class="app-footer flex flex-wrap items-center justify-between gap-2 text-[14px] text-zinc-500">
   <span id="sync-info">Datos guardados solo en este navegador. Exporta una copia de seguridad de vez en cuando.</span>
   <span id="backup-info"></span>
 </footer>
 
-<div id="mobile-bar" class="fixed inset-x-0 bottom-0 z-30 hidden border-t border-white/10 bg-[#0a0c0f]/90 px-4 py-3 backdrop-blur-xl lg:hidden"></div>
+</div><!-- /app-main -->
+</div><!-- /app -->
+
+<!-- ============ NAVEGACIÓN INFERIOR (móvil y tablet) ============ -->
+<nav id="bottom-nav" class="bnav lg:hidden" aria-label="Navegación rápida">
+  <a href="#panel" data-tab="panel" class="bnav-item">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+    <span>Panel</span>
+  </a>
+  <a href="#calc" data-tab="calc" class="bnav-item">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+    <span>Registrar</span>
+  </a>
+  <a href="#history" data-tab="history" class="bnav-item">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
+    <span>Historial</span>
+    <i class="bnav-badge hidden" data-bell-count></i>
+  </a>
+  <a href="#stats" data-tab="stats" class="bnav-item">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16v-4M12 16V8M17 16v-7"/></svg>
+    <span>Estadísticas</span>
+  </a>
+  <a href="#profile" data-tab="profile" class="bnav-item">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+    <span>Perfil</span>
+  </a>
+</nav>
+
+<div id="mobile-bar" class="fixed inset-x-0 z-30 hidden border-t border-white/10 bg-[var(--c-bar)] px-4 py-3 backdrop-blur-xl xl:hidden"></div>
 <div id="combo-pop" class="hidden" role="listbox"></div>
-<div id="pop" class="fixed z-[96] hidden w-72 rounded-xl border border-white/10 bg-[#101318]/95 p-1.5 shadow-2xl shadow-black/70 backdrop-blur-xl"></div>
-<div id="toasts" class="fixed bottom-20 right-4 z-[100] flex w-[calc(100%-2rem)] flex-col gap-2 sm:w-96 lg:bottom-4"></div>
+<div id="pop" class="fixed z-[96] hidden w-72 rounded-xl border border-white/10 bg-[var(--c-popover)] p-1.5 shadow-2xl shadow-black/70 backdrop-blur-xl"></div>
+<div id="toasts" class="fixed right-4 z-[100] flex w-[calc(100%-2rem)] flex-col gap-2 sm:w-96"></div>
 <div id="modal-root"></div>
 
 <noscript><div style="padding:24px;color:#fff">Esta aplicación necesita JavaScript activado.</div></noscript>
@@ -841,7 +1165,7 @@
 'use strict';
 
 /* =========================================================
-   SureTrack · Registro y calculadora de surebets  (v6)
+   SureTrack · Registro y calculadora de surebets  (v7)
    Datos guardados en localStorage de este navegador.
    Formatos: cuotas y líneas con punto (2.10 · 4.5) · dinero con coma (49,40 €)
    ========================================================= */
@@ -3927,7 +4251,7 @@ function saveDraft() {
 function loadDraft() {
   try {
     const d = JSON.parse(lsGet(DRAFT_KEY) || 'null');
-    if (!d) { el('c-value').value = '100'; return; }
+    if (!d) { el('c-value').value = '100'; el('c-round').value = String(DB.settings.defaultRounding || 0); return; }
     DRAFT_FIELDS.forEach(id => { if (d[id] != null && id !== 'e-date') el(id).value = d[id]; });
     if (d['e-date']) el('e-date').value = d['e-date'];
     if (d.mode) UI.mode = d.mode;
@@ -4242,16 +4566,17 @@ function cloudRender() {
   const b = el('btn-account'), info = el('sync-info');
   if (!CLOUD.client || !b) return;
   if (!CLOUD.uid) {
-    b.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span class="hidden sm:inline">Entrar</span>`;
+    b.innerHTML = `<span class="avatar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><span class="sb-label min-w-0"><span class="block truncate font-semibold text-zinc-100">Entrar</span><span class="block truncate text-[14px] text-zinc-500">Sin sesión</span></span>`;
     b.title = 'Entrar o crear cuenta'; b.setAttribute('aria-label', 'Entrar o crear cuenta');
     if (info) info.textContent = 'Sin sesión: datos solo en este navegador. Entra para guardarlos en tu cuenta.';
     el('acc-menu').innerHTML = ''; toggleAccMenu(false);
+    if (typeof renderPageExtras === 'function' && ['account', 'profile'].includes(UI.tab)) renderPageExtras();
     return;
   }
   const st = CLOUD.state === 'off' ? 'sync' : CLOUD.state, at = syncMeta().at;
   const when = st === 'ok' && at ? ` · ${fmtSyncAt(at)}` : '';
   const name = CLOUD.email ? CLOUD.email.split('@')[0] : 'Cuenta';
-  b.innerHTML = `<span class="relative grid h-6 w-6 shrink-0 place-items-center rounded-full bg-emerald-400/15 text-[11px] font-bold uppercase text-emerald-300 ring-1 ring-emerald-400/30">${esc(name[0])}<span class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-[#060709] ${SYNC_DOT[st]}"></span></span><span class="hidden max-w-[9rem] truncate sm:inline">${esc(name)}</span>`;
+  b.innerHTML = `<span class="avatar">${esc(initials(name))}<span class="dot ${SYNC_DOT[st]}"></span></span><span class="sb-label min-w-0"><span class="block truncate font-semibold text-zinc-100">${esc(name)}</span><span class="block truncate text-[14px] text-zinc-500">${esc(SYNC_TXT[st] + when)}</span></span>`;
   b.title = `${CLOUD.email} · ${SYNC_TXT[st]}`; b.setAttribute('aria-label', `Tu cuenta: ${SYNC_TXT[st]}`);
   if (info) info.textContent = `Cuenta ${CLOUD.email} · ${SYNC_TXT[st]}${when}`;
   el('acc-menu').innerHTML = `
@@ -4264,6 +4589,7 @@ function cloudRender() {
     <div class="my-1.5 h-px bg-white/[0.06]"></div>
     <button class="menu-item" data-acc="sync">${st === 'conflict' ? 'Resolver el conflicto' : 'Sincronizar ahora'}</button>
     <button class="menu-item" data-acc="logout">Cerrar sesión</button>`;
+  if (typeof renderPageExtras === 'function' && ['account', 'profile'].includes(UI.tab)) renderPageExtras();
 }
 
 /* ---------- Ventana de acceso: entrar / crear cuenta ---------- */
@@ -4371,7 +4697,7 @@ function pwaKind() {
   if (/Macintosh/.test(ua) && /Safari\//.test(ua) && !/Chrome|Chromium|Edg\//.test(ua)) return 'mac-safari';
   return null;   // Chrome / Edge: el botón aparece cuando el navegador confirma que se puede instalar
 }
-function pwaRender() { const b = el('btn-install'); if (b) b.classList.toggle('hidden', !pwaKind()); }
+function pwaRender() { const k = !!pwaKind(); $$('[data-install]').forEach(b => b.classList.toggle('hidden', !k)); if (typeof renderPageExtras === 'function' && UI.tab === 'account') renderPageExtras(); }
 
 const PWA_ICON = {
   dots: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>',
@@ -4447,7 +4773,7 @@ function pwaStart() {
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); PWA.prompt = e; pwaRender(); });
   window.addEventListener('appinstalled', () => { PWA.prompt = null; pwaRender(); toast('SureTrack instalada. Ábrela desde el menú Inicio o la pantalla de inicio.'); });
   try { matchMedia('(display-mode: standalone)').addEventListener('change', pwaRender); } catch {}
-  const b = el('btn-install'); if (b) b.addEventListener('click', pwaInstall);
+  $$('[data-install]').forEach(b => b.addEventListener('click', pwaInstall));
   pwaRender();
   // Pide al navegador que no borre los datos guardados aunque falte espacio (iOS, Windows…)
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persisted().then(p => p || navigator.storage.persist()).catch(() => {}); } catch {}
@@ -4468,7 +4794,7 @@ function toast(msg, type = 'ok', action) {
   const root = el('toasts');
   const t = document.createElement('div');
   const dot = type === 'error' ? 'bg-rose-400' : type === 'info' ? 'bg-sky-400' : 'bg-emerald-400';
-  t.className = 'toast flex items-center gap-3 rounded-xl border border-white/10 bg-[#111419]/95 px-4 py-3 text-sm text-zinc-200 shadow-2xl shadow-black/50 backdrop-blur';
+  t.className = 'toast flex items-center gap-3 rounded-xl border border-white/10 bg-[var(--c-popover)] px-4 py-3 text-sm text-zinc-200 shadow-2xl shadow-black/50 backdrop-blur';
   t.setAttribute('role', 'status');
   t.innerHTML = `<span class="h-2 w-2 shrink-0 rounded-full ${dot}"></span><span class="flex-1">${esc(msg)}</span>${action ? `<button class="shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-emerald-300 hover:bg-white/5">${esc(action.label)}</button>` : ''}`;
   root.appendChild(t);
@@ -4502,19 +4828,24 @@ function openModal({ title, body, actions = [], wide = false }) {
 }
 
 function setTab(tab) {
-  if (!['calc','history','subs'].includes(tab)) tab = 'calc';
+  if (!TABS[tab]) tab = 'panel';
+  const changed = UI.tab !== tab;
   UI.tab = tab;
-  closeCombo(); closePop();
+  document.documentElement.dataset.page = tab;   // para el CSS (no usar data-tab: lo escucha el clic global)
+  closeCombo(); closePop(); openDrawer(false);
   const mb = el('mobile-bar'); if (mb) mb.classList.toggle('hidden', tab !== 'calc');
   $$('.view').forEach(v => v.classList.toggle('hidden', v.dataset.view !== tab));
-  $$('.tab-btn[data-tab]').forEach(b => b.classList.toggle('is-active', b.dataset.tab === tab));
+  $$('.nav-item[data-tab], .bnav-item[data-tab]').forEach(b => { const on = b.dataset.tab === tab; b.classList.toggle('is-active', on); if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  const pt = el('page-title'); if (pt) pt.textContent = TABS[tab];
   try { if (location.hash.slice(1) !== tab) history.replaceState(null, '', '#' + tab); } catch {}
   if (tab === 'history') renderHistory();
   if (tab === 'subs') renderSubs();
+  renderPageExtras(tab);
+  if (changed) window.scrollTo(0, 0);
 }
 
 function toggleMenu(force) {
-  const m = el('data-menu');
+  const m = el('data-menu'); if (!m) return;
   const open = force ?? m.classList.contains('hidden');
   m.classList.toggle('hidden', !open);
   el('btn-data-menu').setAttribute('aria-expanded', String(open));
@@ -4529,6 +4860,188 @@ async function copyText(text) {
   toast(`Copiado: ${text}`, 'info');
 }
 
+
+// =========================================================
+//  ESTRUCTURA · barra lateral, navegación, tema y páginas Panel / Ajustes / Perfil / Cuenta
+// =========================================================
+const APP_VERSION = 'v7';
+const TABS = { panel: 'Panel', calc: 'Registrar surebet', history: 'Historial', stats: 'Estadísticas', subs: 'Suscripciones', profile: 'Perfil', settings: 'Ajustes', account: 'Cuenta' };
+const THEME_KEY = 'suretrack.theme', SB_KEY = 'suretrack.sidebar';
+const THEME_NAME = { system: 'según el sistema', light: 'claro', dark: 'oscuro' };
+const THEME_ICON = {
+  system: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>',
+  light: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  dark: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
+};
+
+/* ---------- Tema: claro, oscuro o según el sistema ---------- */
+const mqLight = window.matchMedia ? matchMedia('(prefers-color-scheme: light)') : { matches: false };
+function themeMode() {
+  const m = DB.settings.theme || lsGet(THEME_KEY) || 'system';
+  return THEME_NAME[m] ? m : 'system';
+}
+const themeResolved = (mode = themeMode()) => (mode === 'system' ? (mqLight.matches ? 'light' : 'dark') : mode);
+/** Colores de los gráficos en cada tema (cifras y ejes con contraste suficiente). */
+const CHART_THEME = {
+  dark: { s1: '#10b981', s1b: '#34d399', s2: '#38bdf8', s3: '#a855f7', neg: '#f43f5e', negb: '#fb7185', grid: 'rgba(255,255,255,0.05)', axis: 'rgba(255,255,255,0.12)',
+          muted: '#a1a1aa', ink2: '#d4d4d8', bg: '#060709', cross: 'rgba(255,255,255,.18)', zero: 'rgba(255,255,255,.16)',
+          tip: { bg: 'rgba(9,11,14,.96)', border: 'rgba(255,255,255,.10)', title: '#f4f4f5', body: '#d4d4d8', footer: '#a1a1aa' } },
+  light: { s1: '#059669', s1b: '#10b981', s2: '#0284c7', s3: '#7c3aed', neg: '#e11d48', negb: '#f43f5e', grid: 'rgba(15,17,22,0.07)', axis: 'rgba(15,17,22,0.16)',
+           muted: '#4b4e56', ink2: '#30333a', bg: '#ffffff', cross: 'rgba(15,17,22,.22)', zero: 'rgba(15,17,22,.20)',
+           tip: { bg: 'rgba(255,255,255,.98)', border: 'rgba(15,17,22,.12)', title: '#111318', body: '#30333a', footer: '#4b4e56' } },
+};
+function setChartTheme(t) {
+  const P = CHART_THEME[t] || CHART_THEME.dark;
+  Object.assign(C, { s1: P.s1, s1b: P.s1b, s2: P.s2, s3: P.s3, neg: P.neg, negb: P.negb, grid: P.grid, axis: P.axis, muted: P.muted, ink2: P.ink2, bg: P.bg, cross: P.cross, zero: P.zero, $theme: t });
+  Object.assign(TOOLTIP, { backgroundColor: P.tip.bg, borderColor: P.tip.border, titleColor: P.tip.title, bodyColor: P.tip.body, footerColor: P.tip.footer });
+  if (typeof window.Chart !== 'undefined') { Chart.defaults.color = C.muted; Chart.defaults.borderColor = C.grid; }
+  Object.keys(CH).forEach(k => { try { CH[k].destroy(); } catch {} delete CH[k]; });   // se vuelven a dibujar con los colores nuevos
+}
+function applyTheme() {
+  const mode = themeMode(), t = themeResolved(mode), root = document.documentElement;
+  root.dataset.theme = t; root.dataset.themeMode = mode;
+  lsSet(THEME_KEY, mode);
+  const meta = document.querySelector('meta[name="theme-color"]'); if (meta) meta.content = t === 'light' ? '#f4f5f7' : '#060709';
+  $$('[data-theme-set]').forEach(b => { const on = b.dataset.themeSet === mode; b.classList.toggle('is-active', on); b.setAttribute('aria-pressed', String(on)); });
+  const cyc = el('btn-theme-cycle'); if (cyc) { cyc.innerHTML = THEME_ICON[mode]; cyc.title = `Tema: ${THEME_NAME[mode]} (pulsa para cambiar)`; }
+  if (C.$theme !== t) { setChartTheme(t); return true; }
+  return false;
+}
+function setTheme(mode) {
+  if (!THEME_NAME[mode]) return;
+  DB.settings.theme = mode; saveDB();
+  applyTheme(); renderAll();
+}
+
+/* ---------- Barra lateral: plegar (escritorio) y panel deslizante (móvil) ---------- */
+function setSidebarCollapsed(v) {
+  document.documentElement.dataset.sb = v ? 'collapsed' : '';
+  lsSet(SB_KEY, v ? 'collapsed' : 'open');
+  const b = el('sb-collapse'); if (b) { b.title = v ? 'Desplegar menú' : 'Plegar menú'; b.setAttribute('aria-label', b.title); }
+  setTimeout(() => Object.values(CH).forEach(c => { try { c.resize(); } catch {} }), 220);
+}
+function openDrawer(open) {
+  const sb = el('sidebar'), bd = el('sb-backdrop'); if (!sb) return;
+  const isOpen = sb.classList.contains('is-open');
+  if (open === isOpen) return;
+  sb.classList.toggle('is-open', open);
+  if (bd) bd.hidden = !open;
+  document.body.classList.toggle('overflow-hidden', open);
+  const ob = el('sb-open'); if (ob) ob.setAttribute('aria-expanded', String(open));
+  if (open) { const a = sb.querySelector('.nav-item.is-active') || sb.querySelector('.nav-item'); if (a) a.focus(); }
+  else if (ob && sb.contains(document.activeElement)) ob.focus();
+}
+
+/* ---------- Páginas ---------- */
+const BLANK_FILTERS = () => ({ from: '', to: '', sport: '', book: '', status: '', q: '', sub: '', type: '' });
+/** Estadísticas (fase 1): los gráficos de siempre con todo el historial, sin depender de los filtros del Historial. */
+function renderStats() {
+  const empty = el('stats-empty');
+  if (empty) {
+    const none = !DB.records.length;
+    empty.classList.toggle('hidden', !none);
+    empty.innerHTML = none ? emptyState('Aún no hay datos para las estadísticas', 'Registra tu primera surebet o carga los datos de ejemplo para ver cómo quedan los gráficos.', [['Registrar surebet', 'data-tab="calc"', 'btn-primary'], ['Cargar datos de ejemplo', 'data-menu="demo"', 'btn-ghost']]) : '';
+  }
+  const keep = UI.filters; UI.filters = BLANK_FILTERS();
+  try { renderCharts(DB.records); } finally { UI.filters = keep; }
+}
+/** Pantalla vacía: mensaje y botones que dicen qué hacer. */
+function emptyState(title, text, buttons = []) {
+  return `<div class="card flex flex-col items-center gap-4 p-8 text-center">
+    <div class="quick-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16v-4M12 16V8M17 16v-7"/></svg></div>
+    <div><h2 class="h2">${esc(title)}</h2><p class="mt-2 max-w-md text-zinc-400">${esc(text)}</p></div>
+    <div class="flex flex-wrap justify-center gap-3">${buttons.map(([l, attr, cls]) => `<button type="button" ${attr} class="${cls}">${esc(l)}</button>`).join('')}</div>
+  </div>`;
+}
+function renderSettings() {
+  applyTheme();
+  const books = el('set-books'); if (books) books.innerHTML = favBooks().map(n => brandBadge(n, 'lg')).join('');
+  const r = el('set-round'); if (r && document.activeElement !== r) r.value = String(DB.settings.defaultRounding || 0);
+  $$('[data-costmode]').forEach(b => b.classList.toggle('is-active', b.dataset.costmode === DB.settings.costMode));
+  const v = el('set-version'); if (v) v.textContent = `SureTrack ${APP_VERSION}`;
+}
+const costModeLabel = () => (DB.settings.costMode === 'paid' ? 'Pagado por adelantado' : 'Prorrateado por días activos');
+function userName() { return CLOUD.email ? CLOUD.email.split('@')[0] : ''; }
+function initials(name) { const p = String(name || '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(/\s+/); return ((p[0] || '?')[0] + (p[1] ? p[1][0] : '')).toUpperCase(); }
+function renderProfile() {
+  const box = el('profile-card'); if (!box) return;
+  const logged = !!(CLOUD.client && CLOUD.uid), name = userName();
+  box.innerHTML = `
+    <div class="flex flex-wrap items-center gap-6">
+      <span class="avatar !h-24 !w-24 !text-[32px]">${logged ? esc(initials(name)) : '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>'}</span>
+      <div class="min-w-0 flex-1">
+        <h2 class="truncate text-[24px] font-semibold tracking-tight text-white">${logged ? esc(name) : 'Sin sesión'}</h2>
+        <p class="mt-1 truncate text-zinc-400">${logged ? esc(CLOUD.email) : CLOUD.client ? 'Entra para guardar tus datos en tu cuenta' : 'Modo local: datos solo en este navegador'}</p>
+      </div>
+    </div>
+    <div class="mt-6 rounded-xl border border-white/[0.08] p-4 text-zinc-400">El alias y la foto de perfil llegan en la próxima fase. Mientras, se muestra la parte de tu email antes de la @.</div>
+    <div class="mt-6 flex flex-wrap gap-3">
+      ${CLOUD.client && !logged ? '<button type="button" class="btn-primary" data-act="login">Entrar o crear cuenta</button>' : ''}
+      <a href="#account" data-tab="account" class="btn-ghost">Ir a Cuenta</a>
+      <a href="#settings" data-tab="settings" class="btn-ghost">Ir a Ajustes</a>
+    </div>`;
+}
+function renderAccount() {
+  const box = el('acct-session'); if (!box) return;
+  if (!CLOUD.client) {
+    box.innerHTML = `<h2 class="h2">Sesión</h2><p class="mt-2 text-zinc-400">Modo local: tus datos se guardan solo en este navegador. Exporta una copia de seguridad de vez en cuando.</p>`;
+  } else if (!CLOUD.uid) {
+    box.innerHTML = `<h2 class="h2">Sesión</h2><p class="mt-2 text-zinc-400">No has iniciado sesión. Tus datos se guardan solo en este navegador hasta que entres con tu cuenta.</p>
+      <div class="mt-4"><button type="button" class="btn-primary" data-act="login">Entrar o crear cuenta</button></div>`;
+  } else {
+    const st = CLOUD.state === 'off' ? 'sync' : CLOUD.state, at = syncMeta().at;
+    box.innerHTML = `<h2 class="h2">Sesión</h2>
+      <dl class="mt-4 grid gap-4 sm:grid-cols-2">
+        <div><dt class="text-zinc-500">Correo</dt><dd class="mt-1 truncate font-medium text-zinc-100">${esc(CLOUD.email)}</dd></div>
+        <div><dt class="text-zinc-500">Sincronización</dt><dd class="mt-1 flex items-center gap-2 font-medium text-zinc-100"><span class="h-2.5 w-2.5 shrink-0 rounded-full ${SYNC_DOT[st]}"></span>${esc(SYNC_TXT[st])}${st === 'ok' && at ? ` · ${esc(fmtSyncAt(at))}` : ''}</dd></div>
+      </dl>
+      ${st === 'error' && CLOUD.errMsg ? `<p class="mt-3 text-rose-300">${esc(CLOUD.errMsg)}</p>` : ''}
+      <p class="mt-4 text-zinc-500">Cambiar la contraseña llega en la próxima fase.</p>
+      <div class="mt-4 flex flex-wrap gap-3">
+        <button type="button" class="btn-ghost" data-act="sync">${st === 'conflict' ? 'Resolver el conflicto' : 'Sincronizar ahora'}</button>
+        <button type="button" class="btn-ghost" data-act="logout">Cerrar sesión</button>
+      </div>`;
+  }
+  const lb = DB.settings.lastBackup ? new Date(DB.settings.lastBackup) : null;
+  el('acct-backup').textContent = lb ? `Última copia exportada: ${fmtDayLong(lb)}.` : 'Aún no has exportado ninguna copia.';
+  const ins = el('acct-install');
+  if (ins) {
+    const kind = typeof pwaKind === 'function' ? pwaKind() : null;
+    const standalone = typeof pwaStandalone === 'function' && pwaStandalone();
+    ins.innerHTML = `<h2 class="h2">Instalar la app</h2>
+      <p class="mt-2 text-zinc-400">${standalone ? 'Estás usando SureTrack instalada como aplicación.' : kind ? 'Ábrela desde el menú Inicio o la pantalla de inicio, en su propia ventana y sin conexión.' : 'Ya está instalada en este dispositivo, o este navegador no permite instalarla desde aquí. En Windows, usa Edge o Chrome; en iPhone, Safari.'}</p>
+      ${kind ? '<div class="mt-4"><button type="button" class="btn-primary" data-act="install">Instalar App</button></div>' : ''}`;
+  }
+}
+function renderPageExtras(tab = UI.tab) {
+  if (tab === 'stats') renderStats();
+  if (tab === 'settings') renderSettings();
+  if (tab === 'account') renderAccount();
+  if (tab === 'profile') renderProfile();
+  if (tab === 'subs') { const n = el('subs-costmode'); if (n) n.textContent = costModeLabel(); }
+}
+
+/* ---------- Arranque de la estructura ---------- */
+function shellStart() {
+  if (!el('acc-box')) { const lc = el('local-chip'); if (lc) lc.classList.remove('hidden'); }
+  setSidebarCollapsed(document.documentElement.dataset.sb === 'collapsed');
+  el('sb-open').addEventListener('click', () => openDrawer(true));
+  el('sb-close').addEventListener('click', () => openDrawer(false));
+  el('sb-backdrop').addEventListener('click', () => openDrawer(false));
+  el('sb-collapse').addEventListener('click', () => setSidebarCollapsed(document.documentElement.dataset.sb !== 'collapsed'));
+  el('btn-theme-cycle').addEventListener('click', () => { const o = ['system', 'light', 'dark']; setTheme(o[(o.indexOf(themeMode()) + 1) % 3]); toast(`Tema ${THEME_NAME[themeMode()]}`, 'info'); });
+  document.addEventListener('click', e => {
+    const th = e.target.closest('[data-theme-set]'); if (th) { setTheme(th.dataset.themeSet); return; }
+    const a = e.target.closest('[data-act]'); if (!a) return;
+    ({ login: () => openAuth('login'), sync: () => cloudPull(true), logout: () => cloudLogout(false), install: () => pwaInstall() })[a.dataset.act]?.();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && el('sidebar').classList.contains('is-open')) openDrawer(false); });
+  const r = el('set-round');
+  if (r) r.addEventListener('change', () => { DB.settings.defaultRounding = Number(r.value) || 0; saveDB(); toast('Redondeo por defecto guardado'); });
+  const onSys = () => { if (themeMode() === 'system' && applyTheme()) renderAll(); };
+  try { mqLight.addEventListener('change', onSys); } catch { try { mqLight.addListener(onSys); } catch {} }
+  window.addEventListener('resize', () => { if (window.innerWidth >= 1024) openDrawer(false); });
+}
 
 // =========================================================
 //  RENDER · KPIs (nivel dashboard) e indicador de estado en la cabecera
@@ -5274,7 +5787,7 @@ function renderOutcomes() {
     if (!box) return;
     if (!show) { setHTML(box, ''); return; }
     setHTML(box, `<div class="mt-3 text-xs font-medium text-zinc-400">Resultado que cubre</div>
-      <div class="mt-1.5 grid grid-cols-3 gap-1.5">${base.map((txt, k) => `<button type="button" data-out="${i}:${k}" title="${esc(txt)}" class="truncate rounded-lg border px-2 py-1.5 text-xs font-semibold transition ${order[i - 1] === k ? 'border-emerald-400/60 bg-emerald-400/15 text-emerald-200' : 'border-white/10 bg-[#0b0c0f] text-zinc-400 hover:border-white/25 hover:text-zinc-200'}">${esc(txt)}</button>`).join('')}</div>`);
+      <div class="mt-1.5 grid grid-cols-3 gap-1.5">${base.map((txt, k) => `<button type="button" data-out="${i}:${k}" title="${esc(txt)}" class="truncate rounded-lg border px-2 py-1.5 text-xs font-semibold transition ${order[i - 1] === k ? 'border-emerald-400/60 bg-emerald-400/15 text-emerald-200' : 'border-white/10 bg-[var(--c-input)] text-zinc-400 hover:border-white/25 hover:text-zinc-200'}">${esc(txt)}</button>`).join('')}</div>`);
   });
 }
 function pickBook(i, name) {
@@ -5521,7 +6034,7 @@ function ticketHTML(f, miss) {
     <div class="mt-3">
       <div class="mb-2 text-xs font-medium ${UI.tried && !UI.newWinner ? 'text-rose-300' : 'text-zinc-400'}">¿Qué casa ganó?</div>
       <div class="grid ${ids.length === 3 ? 'grid-cols-3' : 'grid-cols-2'} gap-2">${ids.map(i => `
-        <button type="button" data-win="${i}" class="flex flex-col items-center justify-center gap-1.5 rounded-lg border px-2 py-2.5 text-center transition ${UI.newWinner === String(i) ? 'border-emerald-400/60 bg-emerald-400/10 shadow-[0_0_20px_-8px_rgba(16,185,129,.8)]' : 'border-white/10 bg-[#07080a] hover:border-white/25'}">
+        <button type="button" data-win="${i}" class="flex flex-col items-center justify-center gap-1.5 rounded-lg border px-2 py-2.5 text-center transition ${UI.newWinner === String(i) ? 'border-emerald-400/60 bg-emerald-400/10 shadow-[0_0_20px_-8px_rgba(16,185,129,.8)]' : 'border-white/10 bg-[var(--c-input)] hover:border-white/25'}">
           ${f['b' + i] ? brandBadge(f['b' + i]) : `<span class="brand neutral">Casa ${i}</span>`}
           <span class="num text-xs font-semibold ${r.ok ? (winProfit(i) >= 0 ? 'text-emerald-300' : 'text-rose-300') : 'text-zinc-500'}">${r.ok ? fmtSigned(winProfit(i)) : '—'}</span>
         </button>`).join('')}
@@ -5696,7 +6209,6 @@ function renderHistory() {
   const list = filtered();
   renderSummary(list);
   renderTable(list);
-  renderCharts(list);
 }
 
 /** Cabecera cuando se filtra por una suscripción concreta. */
@@ -5874,6 +6386,7 @@ function renderReminders() {
   const bc = el('bell-count');
   bc.textContent = n > 99 ? '99+' : String(n);
   bc.classList.toggle('hidden', !n); bc.classList.toggle('grid', !!n);
+  $$('[data-bell-count]').forEach(x => { x.textContent = x.tagName === 'I' ? '' : (n > 99 ? '99+' : String(n)); x.classList.toggle('hidden', !n); x.title = n ? `${n} por resolver` : ''; });
   document.title = n ? `(${n}) SureTrack · Surebets` : 'SureTrack · Surebets';
   const ban = el('overdue-banner');
   if (!n) { ban.classList.add('hidden'); ban.innerHTML = ''; }
@@ -5916,7 +6429,7 @@ function resolverBody() {
         </div>
       </div>
       <div class="mt-3 grid ${r.ways === 3 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2'} gap-2">${legsOf(r).map(i => `
-        <button type="button" data-res="won${i}" data-id="${esc(r.id)}" class="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-[#0b0c0f] px-3 py-2.5 text-left transition hover:border-emerald-400/50 hover:bg-emerald-400/[0.06]">
+        <button type="button" data-res="won${i}" data-id="${esc(r.id)}" class="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-[var(--c-input)] px-3 py-2.5 text-left transition hover:border-emerald-400/50 hover:bg-emerald-400/[0.06]">
           <span class="min-w-0"><span class="block">${brandBadge(r['book' + i])}</span><span class="mt-1 block truncate text-xs text-zinc-400">${esc(r['sel' + i] || '—')}</span></span>
           <span class="num shrink-0 text-sm font-semibold ${outcomeProfit(r, i) >= 0 ? 'text-emerald-300' : 'text-rose-300'}">${fmtSigned(outcomeProfit(r, i))}</span>
         </button>`).join('')}
@@ -6549,7 +7062,7 @@ const crosshair = {
     const act = chart.tooltip && chart.tooltip.getActiveElements();
     if (!act || !act.length) return;
     const x = act[0].element.x, { top, bottom } = chart.chartArea, ctx = chart.ctx;
-    ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+    ctx.save(); ctx.strokeStyle = C.cross; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
     ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, bottom); ctx.stroke(); ctx.restore();
   },
 };
@@ -6566,7 +7079,7 @@ const endLabels = {
       placed.forEach(py => { if (Math.abs(py - y) < 15) y = py + (y >= py ? 15 : -15); });
       placed.push(y);
       ctx.save();
-      ctx.fillStyle = '#060709'; ctx.beginPath(); ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = C.bg; ctx.beginPath(); ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = ds.borderColor; ctx.beginPath(); ctx.arc(pt.x, pt.y, 3.2, 0, Math.PI * 2); ctx.fill();
       ctx.font = `600 11px ${MONO}`; ctx.fillStyle = ds.borderColor; ctx.textBaseline = 'middle';
       ctx.fillText(fmtEurShort(ds.data[ds.data.length - 1]), pt.x + 9, y);
@@ -6581,7 +7094,7 @@ const zeroLine = {
     if (!opts.enabled) return;
     const s = chart.scales[opts.axis || 'y']; if (!s || s.min > 0 || s.max < 0) return;
     const ctx = chart.ctx, { left, right, top, bottom } = chart.chartArea, p = s.getPixelForValue(0);
-    ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.16)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.beginPath();
+    ctx.save(); ctx.strokeStyle = C.zero; ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.beginPath();
     if ((opts.axis || 'y') === 'y') { ctx.moveTo(left, p); ctx.lineTo(right, p); } else { ctx.moveTo(p, top); ctx.lineTo(p, bottom); }
     ctx.stroke(); ctx.restore();
   },
@@ -6648,7 +7161,7 @@ function renderCharts(list) {
     chartEmpty('ch-cum');
     const withCost = subs.length > 0;
     const line = (label, data, color, fillTop) => ({ label, data, borderColor: color, backgroundColor: vGrad(color, fillTop), fill: 'origin', borderWidth: 2, pointRadius: 0,
-      pointHoverRadius: 4.5, pointHoverBorderWidth: 2, pointHoverBorderColor: '#060709', pointHoverBackgroundColor: color, tension: 0.32, cubicInterpolationMode: 'monotone' });
+      pointHoverRadius: 4.5, pointHoverBorderWidth: 2, pointHoverBorderColor: C.bg, pointHoverBackgroundColor: color, tension: 0.32, cubicInterpolationMode: 'monotone' });
     const ds = [line('Bruto acumulado', T.bruto, C.s1, 0.30)];
     if (withCost) ds.push(line('Neto real (tras suscripción)', T.neto, C.s2, 0.16));
     upsertChart('ch-cum', {
@@ -6690,7 +7203,7 @@ function renderCharts(list) {
     }
     upsertChart('ch-daily', {
       type: 'bar',
-      data: { labels, datasets: [{ label: 'Beneficio', data: vals, backgroundColor: vals.map(v => v >= 0 ? hexA(C.s1, 0.85) : hexA(C.neg, 0.85)), hoverBackgroundColor: vals.map(v => v >= 0 ? C.s1b : '#fb7185'),
+      data: { labels, datasets: [{ label: 'Beneficio', data: vals, backgroundColor: vals.map(v => v >= 0 ? hexA(C.s1, 0.85) : hexA(C.neg, 0.85)), hoverBackgroundColor: vals.map(v => v >= 0 ? C.s1b : C.negb),
         borderRadius: 6, borderSkipped: false, maxBarThickness: 22, categoryPercentage: 0.82, barPercentage: 0.88 }] },
       options: {
         responsive: true, maintainAspectRatio: false, animation: { duration: 400 },
@@ -6733,7 +7246,7 @@ function hBar(labels, vals, labelCb, colors) {
   const bg = colors || vals.map(v => v >= 0 ? hexA(C.s1, 0.85) : hexA(C.neg, 0.85));
   return {
     type: 'bar',
-    data: { labels, datasets: [{ data: vals, backgroundColor: bg, hoverBackgroundColor: colors || vals.map(v => v >= 0 ? C.s1b : '#fb7185'), borderRadius: 6, borderSkipped: false, maxBarThickness: 16, categoryPercentage: 0.78, barPercentage: 0.9 }] },
+    data: { labels, datasets: [{ data: vals, backgroundColor: bg, hoverBackgroundColor: colors || vals.map(v => v >= 0 ? C.s1b : C.negb), borderRadius: 6, borderSkipped: false, maxBarThickness: 16, categoryPercentage: 0.78, barPercentage: 0.9 }] },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: { duration: 400 },
       interaction: { mode: 'nearest', axis: 'y', intersect: false },
@@ -6872,6 +7385,7 @@ function renderFooter() {
 }
 
 function renderAll() {
+  applyTheme();
   renderKPIs();
   renderReminders();
   fillSportSelect();
@@ -6879,6 +7393,7 @@ function renderAll() {
   renderRecent();
   if (UI.tab === 'history') renderHistory();
   if (UI.tab === 'subs') renderSubs();
+  renderPageExtras();
   renderFooter();
 }
 
@@ -6889,7 +7404,7 @@ function resetForm(full = false) {
   const keep = full ? [] : ['e-sport', 'c-value', 'c-round'];
   ['e-comp','e-home','e-away','e-market','e-player','e-line','e-map','c-book1','c-book2','c-book3','c-sel1','c-sel2','c-sel3','c-odd1','c-odd2','c-odd3','c-comm1','c-comm2','c-comm3','c-m1','c-m2','c-m3','e-notes','c-value']
     .forEach(id => { if (!keep.includes(id)) el(id).value = ''; });
-  if (full) { el('c-value').value = '100'; el('c-round').value = '0'; }
+  if (full) { el('c-value').value = '100'; el('c-round').value = String(DB.settings.defaultRounding || 0); }
   el('e-date').value = nowLocal(); el('e-placed').value = nowLocal(); UI.placedManual = false;
   UI.autoSel = null; UI.selOrder = null; UI.ways = 2; UI.other = { 1: false, 2: false, 3: false }; UI.commOpen = { 1: false, 2: false, 3: false };
   if (UI.mode === 'stake3') UI.mode = 'bank';
@@ -7572,7 +8087,6 @@ function bind() {
   window.addEventListener('scroll', () => { positionCombo(); positionPop(); }, true);
   window.addEventListener('resize', () => { positionCombo(); closePop(); });
 
-  el('btn-data-menu').addEventListener('click', () => toggleMenu());
   el('btn-bell').addEventListener('click', openResolver);
   el('btn-paste').addEventListener('click', openPaste);
   window.addEventListener('hashchange', () => setTab(location.hash.slice(1)));
@@ -7636,7 +8150,7 @@ function bind() {
     UI.sort = UI.sort.key === k ? { key: k, dir: UI.sort.dir === 'asc' ? 'desc' : 'asc' } : { key: k, dir: k === 'match' ? 'asc' : 'desc' };
     persistUI(); renderTable(filtered());
   }));
-  $$('#dim-seg [data-dim]').forEach(b => b.addEventListener('click', () => { UI.byDim = b.dataset.dim; persistUI(); renderCharts(filtered()); }));
+  $$('#dim-seg [data-dim]').forEach(b => b.addEventListener('click', () => { UI.byDim = b.dataset.dim; persistUI(); renderStats(); }));
   el('btn-export-filtered').addEventListener('click', () => exportCSV(filtered(), '_filtrado'));
   el('file-import').addEventListener('change', e => { handleImportFile(e.target.files[0]); e.target.value = ''; });
 
@@ -7656,6 +8170,7 @@ function bind() {
 function init() {
   cloudBoot();   // nube: lee la sesión guardada antes de cargar los datos
   loadDB(); loadUI();
+  applyTheme();   // tema guardado con tus datos (o el de este dispositivo)
   fillSportSelect();
   el('e-date').value = nowLocal(); el('e-placed').value = nowLocal();
   resetSubForm();
@@ -7667,7 +8182,8 @@ function init() {
   renderAll();
   cloudStart();  // nube: botón de cuenta y primera sincronización
   pwaStart();    // app instalable: botón «Instalar App», service worker y almacenamiento persistente
-  setTab(location.hash.slice(1) || 'calc');
+  shellStart();  // barra lateral, menú del móvil y tema
+  setTab(location.hash.slice(1) || 'panel');
   setInterval(() => {
     renderKPIs(); renderReminders(); renderRecent();
     if (UI.tab === 'calc' && !UI.placedManual && !UI.editingId) renderCalc();
