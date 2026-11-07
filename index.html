@@ -499,6 +499,33 @@
   @media (max-width: 639px) { #f-box:not(.is-open) .f-adv { display: none; } }
   #f-more-n { color: var(--c-acc-text); }
   #f-box.is-open .f-chev { transform: rotate(180deg); }
+  /* Fase 4 · Estadísticas */
+  #f-chips:not(.hidden) { display: flex; }
+  #f-chips .chip { max-width: 100%; }
+  #st-reset.hidden { display: none; }
+  @media (max-width: 639px) {
+    #st-range { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -24px; padding-inline: 24px; scroll-padding-inline: 24px; }
+    #st-range::-webkit-scrollbar { display: none; }
+    #st-range > .chip { flex-shrink: 0; }
+  }
+  .st-tabs { flex-wrap: wrap; }
+  .st-tabs > button { flex: 1 1 auto; }
+  .stat.st-hero .stat-value { font-size: 32px; }
+  .st-row.is-link { cursor: pointer; }
+  .st-row.is-link:hover { background: rgb(var(--ink-rgb) / .04); }
+  .st-row.is-pin td { color: var(--c-muted-2); }
+  .st-row td:first-child, .st-row th:first-child { padding-left: 24px; }
+  .st-row td:last-child { padding-right: 24px; }
+  #stats-body thead th:first-child { padding-left: 24px; }
+  #stats-body thead th:last-child { padding-right: 24px; }
+  .st-link { display: inline-flex; align-items: center; min-height: 44px; max-width: 100%; text-align: left; font-weight: 600; color: var(--c-ink); }
+  .st-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .st-link:focus-visible { outline: 2px solid var(--c-acc); outline-offset: 2px; border-radius: 6px; }
+  .st-cards > * + * { border-top: 1px solid rgb(var(--ink-rgb) / .07); }
+  .st-card { padding: 16px 24px; }
+  .st-card.is-link { cursor: pointer; }
+  .st-card.is-link:active { background: rgb(var(--ink-rgb) / .04); }
+  #stats-body .tbl-wrap { max-height: none; }
   /* Fase 3 · Perfil: foto, iniciales y recorte */
   .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
   .avatar .dot { z-index: 1; }
@@ -965,6 +992,7 @@
           <option value="void">Nulas</option>
         </select>
       </div>
+      <div id="f-chips" class="mt-4 hidden flex-wrap items-center gap-2"></div>
       <div class="mt-4 flex flex-wrap items-center gap-2" id="f-quick">
         <button class="chip" data-range="today">Hoy</button>
         <button class="chip" data-range="7">7 días</button>
@@ -1016,36 +1044,111 @@
   <!-- ============ ESTADÍSTICAS ============ -->
   <section data-view="stats" class="view hidden space-y-6">
     <div id="stats-empty" class="hidden"></div>
-    <p class="text-zinc-400">Todo tu historial. Los filtros por periodo, tipo y suscripción y las tablas por casa, deporte y mercado llegan en la siguiente fase.</p>
-    <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-      <div class="card p-6 xl:col-span-2">
-        <h3 class="h2">Evolución del beneficio</h3>
-        <p class="sub">Bruto acumulado frente a neto tras la suscripción · por fecha de realización</p>
-        <div class="relative mt-4 h-64 sm:h-72"><canvas id="ch-cum" aria-label="Evolución del beneficio acumulado"></canvas><div class="chart-empty absolute inset-0 hidden place-items-center text-sm text-zinc-500"></div></div>
-      </div>
-      <div class="card p-6">
-        <h3 class="h2" id="ch-daily-title">Beneficio por día</h3>
-        <p class="sub">Surebets cobradas</p>
-        <div class="relative mt-4 h-64 sm:h-72"><canvas id="ch-daily" aria-label="Beneficio por periodo"></canvas><div class="chart-empty absolute inset-0 hidden place-items-center text-sm text-zinc-500"></div></div>
-      </div>
-      <div class="card p-6 xl:col-span-2">
-        <div class="flex flex-wrap items-start justify-between gap-4">
-          <div><h3 class="h2" id="ch-sport-title">Beneficio por deporte</h3><p class="sub">Top 10 · surebets cobradas</p></div>
-          <div class="seg !p-1" id="dim-seg">
-            <button data-dim="sport">Deporte</button>
-            <button data-dim="group">Categoría</button>
-            <button data-dim="market">Mercado</button>
+    <div id="stats-body" class="space-y-6">
+      <div class="card p-6" id="st-filters">
+        <div class="flex flex-wrap items-center gap-2" id="st-range" role="group" aria-label="Periodo">
+          <button type="button" class="chip" data-srange="7">7 días</button>
+          <button type="button" class="chip" data-srange="30">30 días</button>
+          <button type="button" class="chip" data-srange="month">Este mes</button>
+          <button type="button" class="chip" data-srange="year">Este año</button>
+          <button type="button" class="chip" data-srange="all">Todo</button>
+          <button type="button" class="chip" data-srange="custom">Personalizado</button>
+        </div>
+        <div id="st-custom" class="mt-4 hidden">
+          <div class="flex flex-wrap items-center gap-2">
+            <label class="sr-only" for="st-from">Desde</label><input id="st-from" type="date" class="inp num !w-auto">
+            <span class="text-zinc-400" aria-hidden="true">→</span>
+            <label class="sr-only" for="st-to">Hasta</label><input id="st-to" type="date" class="inp num !w-auto">
           </div>
         </div>
-        <div class="relative mt-4 h-72"><canvas id="ch-sport" aria-label="Beneficio por deporte, categoría o mercado"></canvas><div class="chart-empty absolute inset-0 hidden place-items-center text-sm text-zinc-500"></div></div>
+        <div class="mt-4 grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
+          <select id="st-type" class="inp sm:!w-auto sm:flex-auto" aria-label="Tipo de apuesta">
+            <option value="">Pre y live</option>
+            <option value="pre">Pre-partido</option>
+            <option value="live">Live</option>
+          </select>
+          <select id="st-sub" class="inp sm:!w-auto sm:flex-auto" aria-label="Suscripción"></select>
+          <button type="button" id="st-reset" class="tap text-[14px] font-medium text-zinc-400 hover:text-zinc-200 sm:ml-auto">Restablecer filtros</button>
+        </div>
+        <p id="st-scope" class="mt-4 text-[14px] text-zinc-400" aria-live="polite"></p>
       </div>
-      <div class="card p-6">
-        <h3 class="h2">Dinero movido por casa</h3>
-        <p class="sub">Suma de stakes (sin nulas)</p>
-        <div class="relative mt-4 h-72"><canvas id="ch-books" aria-label="Dinero por casa de apuestas"></canvas><div class="chart-empty absolute inset-0 hidden place-items-center text-sm text-zinc-500"></div></div>
+
+      <div id="st-kpis" class="grid grid-cols-2 gap-4 lg:grid-cols-4"></div>
+
+      <div class="seg st-tabs" id="st-tabs" role="tablist" aria-label="Estadísticas por">
+        <button type="button" role="tab" id="stt-books" aria-controls="stp-books" data-stab="books">Casas</button>
+        <button type="button" role="tab" id="stt-sports" aria-controls="stp-sports" data-stab="sports">Deportes</button>
+        <button type="button" role="tab" id="stt-markets" aria-controls="stp-markets" data-stab="markets">Mercados</button>
+        <button type="button" role="tab" id="stt-subs" aria-controls="stp-subs" data-stab="subs">Suscripciones</button>
+        <button type="button" role="tab" id="stt-time" aria-controls="stp-time" data-stab="time">Tiempo</button>
+      </div>
+
+      <!-- Casas -->
+      <div id="stp-books" class="st-panel space-y-6" role="tabpanel" aria-labelledby="stt-books">
+        <div class="card p-6">
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <div class="min-w-0"><h3 class="h2" id="st-books-title">Beneficio neto por casa</h3><p class="sub" id="st-books-sub"></p></div>
+            <div class="seg" role="group" aria-label="Qué mostrar"><button type="button" data-bookview="profit">Beneficio neto</button><button type="button" data-bookview="volume">Dinero movido</button></div>
+          </div>
+          <div class="relative mt-4 h-72"><canvas id="ch-books" aria-label="Gráfico por casa de apuestas"></canvas><div class="chart-empty absolute inset-0 hidden place-items-center text-zinc-400"></div></div>
+        </div>
+        <div class="card overflow-hidden"><div class="px-6 pt-6"><h3 class="h2">Por casa</h3><p class="sub">Pulsa una casa para ver sus surebets en el Historial.</p></div><div id="st-books-table" class="mt-4"></div><p id="st-books-note" class="hidden px-6 pb-6 pt-4 text-[14px] text-zinc-400"></p></div>
+      </div>
+
+      <!-- Deportes -->
+      <div id="stp-sports" class="st-panel hidden space-y-6" role="tabpanel" aria-labelledby="stt-sports">
+        <div class="card p-6">
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <div class="min-w-0"><h3 class="h2" id="st-sports-title">Beneficio por deporte</h3><p class="sub">Los 10 con más beneficio · surebets cobradas</p></div>
+            <div class="seg" role="group" aria-label="Agrupar por"><button type="button" data-dim="sport">Deporte</button><button type="button" data-dim="group">Categoría</button></div>
+          </div>
+          <div class="relative mt-4 h-72"><canvas id="ch-sport" aria-label="Beneficio por deporte o categoría"></canvas><div class="chart-empty absolute inset-0 hidden place-items-center text-zinc-400"></div></div>
+        </div>
+        <div class="card overflow-hidden"><div class="px-6 pt-6"><h3 class="h2">Por deporte</h3><p class="sub">Pulsa uno para ver sus surebets en el Historial.</p></div><div id="st-sports-table" class="mt-4"></div></div>
+      </div>
+
+      <!-- Mercados -->
+      <div id="stp-markets" class="st-panel hidden space-y-6" role="tabpanel" aria-labelledby="stt-markets">
+        <div class="card p-6">
+          <h3 class="h2">Beneficio por mercado</h3><p class="sub" id="st-markets-sub"></p>
+          <div class="relative mt-4 h-72"><canvas id="ch-market" aria-label="Beneficio por mercado"></canvas><div class="chart-empty absolute inset-0 hidden place-items-center text-zinc-400"></div></div>
+        </div>
+        <div class="card overflow-hidden"><div class="px-6 pt-6"><h3 class="h2">Por mercado</h3><p class="sub">Pulsa uno para ver sus surebets en el Historial.</p></div><div id="st-markets-table" class="mt-4"></div></div>
+      </div>
+
+      <!-- Suscripciones -->
+      <div id="stp-subs" class="st-panel hidden space-y-6" role="tabpanel" aria-labelledby="stt-subs">
+        <div class="card p-6">
+          <h3 class="h2">Beneficio frente a coste</h3><p class="sub">Beneficio bruto de las surebets de cada suscripción y lo que te ha costado en el periodo</p>
+          <div class="relative mt-4 h-72"><canvas id="ch-subs" aria-label="Beneficio y coste por suscripción"></canvas><div class="chart-empty absolute inset-0 hidden place-items-center text-zinc-400"></div></div>
+        </div>
+        <div class="card overflow-hidden"><div class="px-6 pt-6"><h3 class="h2">Por suscripción</h3><p class="sub">Días para amortizar = lo que falta por cubrir ÷ beneficio medio por día activo.</p></div><div id="st-subs-table" class="mt-4"></div></div>
+      </div>
+
+      <!-- Tiempo -->
+      <div id="stp-time" class="st-panel hidden space-y-6" role="tabpanel" aria-labelledby="stt-time">
+        <div class="card p-6">
+          <h3 class="h2">Evolución del beneficio</h3>
+          <p class="sub">Bruto acumulado frente a neto tras la suscripción · por fecha de realización</p>
+          <div class="relative mt-4 h-64 sm:h-72"><canvas id="ch-cum" aria-label="Evolución del beneficio acumulado"></canvas><div class="chart-empty absolute inset-0 hidden place-items-center text-zinc-400"></div></div>
+        </div>
+        <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          <div class="card p-6 xl:col-span-2">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+              <div class="min-w-0"><h3 class="h2" id="ch-daily-title">Beneficio por día</h3><p class="sub">Surebets cobradas · por fecha de realización</p></div>
+              <div class="seg" role="group" aria-label="Agrupar por"><button type="button" data-timeby="day">Día</button><button type="button" data-timeby="week">Semana</button><button type="button" data-timeby="month">Mes</button></div>
+            </div>
+            <div class="relative mt-4 h-64 sm:h-72"><canvas id="ch-daily" aria-label="Beneficio por periodo"></canvas><div class="chart-empty absolute inset-0 hidden place-items-center text-zinc-400"></div></div>
+          </div>
+          <div class="card p-6">
+            <h3 class="h2">Por día de la semana</h3><p class="sub">Beneficio · por fecha de realización</p>
+            <div class="relative mt-4 h-64 sm:h-72"><canvas id="ch-wday" aria-label="Beneficio por día de la semana"></canvas><div class="chart-empty absolute inset-0 hidden place-items-center text-zinc-400"></div></div>
+          </div>
+        </div>
+        <div class="card overflow-hidden"><div class="px-6 pt-6"><h3 class="h2" id="st-time-title">Día a día</h3><p class="sub">Pulsa un periodo para ver sus surebets en el Historial.</p></div><div id="st-time-table" class="mt-4"></div></div>
+        <div class="card overflow-hidden"><div class="px-6 pt-6"><h3 class="h2">Día de la semana</h3><p class="sub">Pulsa un día para ver sus surebets en el Historial.</p></div><div id="st-wday-table" class="mt-4"></div></div>
       </div>
     </div>
-
   </section>
 
   <!-- ============ VISTA 3 · SUSCRIPCIÓN ============ -->
@@ -1273,7 +1376,7 @@
 'use strict';
 
 /* =========================================================
-   SureTrack · Registro y calculadora de surebets  (v9)
+   SureTrack · Registro y calculadora de surebets  (v10)
    Datos guardados en localStorage de este navegador.
    Formatos: cuotas y líneas con punto (2.10 · 4.5) · dinero con coma (49,40 €)
    ========================================================= */
@@ -3750,8 +3853,9 @@ let DB = { records: [], subs: [], settings: { costMode: 'prorated', lastBackup: 
 const UI = {
   tab: 'calc', mode: 'bank', editingId: null, editReturnTab: null,
   subEditingId: null, subForm: null,
-  filters: { from: '', to: '', sport: '', book: '', status: '', q: '', sub: '', type: '' },
-  sort: { key: 'eventAt', dir: 'desc' }, limit: 50, byDim: 'sport',
+  filters: { from: '', to: '', sport: '', book: '', status: '', q: '', sub: '', type: '', market: '', pfrom: '', pto: '', wd: '' },
+  sort: { key: 'eventAt', dir: 'desc' }, limit: 50, byDim: 'sport', fromStats: false,
+  stats: { range: 'all', from: '', to: '', type: '', sub: '', tab: 'books', bookView: 'profit', timeBy: '', sort: {} },
   ways: 2, autoSel: null, selOrder: null, other: { 1: false, 2: false, 3: false }, commOpen: { 1: false, 2: false, 3: false },
   betType: 'pre', subAuto: true, subId: '', placedManual: false,
   newStatus: 'pending', newWinner: '', newCash: null, newRes: null, tried: false, lastOverdue: null, closeModal: null,
@@ -4248,12 +4352,14 @@ function subsForFilter(f = UI.filters.sub) {
   const s = subById(f); return s ? [s] : [];
 }
 
+/** Día en que se realizó el pick (decide su suscripción y dónde cae en los gráficos de tiempo). */
+const placedKey = r => (r.placedAt || r.eventAt).slice(0, 10);
 /** Serie diaria: beneficio bruto acumulado, coste acumulado y neto. */
 function buildTimeline(records, fromKey = '', toKey = '', subs = DB.subs) {
   const todayK = todayKey();
   const byDay = new Map();
   // El beneficio se imputa al día en que se REALIZÓ el pick (igual que su suscripción)
-  const dayOf = r => (r.placedAt || r.eventAt).slice(0, 10);
+  const dayOf = placedKey;
   let startK = fromKey, endK = toKey;
   if (!startK) {
     const ks = [...records.map(dayOf), ...subs.map(s => s.start).filter(s => s <= todayK)].sort();
@@ -4339,13 +4445,14 @@ function saveDB() {
   if (!lsSet(storeKey(), JSON.stringify(DB))) toast('No se ha podido guardar en este navegador. Exporta una copia para no perder datos.', 'error');
   cloudQueue();   // con sesión iniciada, sube el cambio a tu cuenta (1,5 s después)
 }
-function persistUI() { lsSet(UI_KEY, JSON.stringify({ filters: UI.filters, sort: UI.sort, byDim: UI.byDim })); }
+function persistUI() { lsSet(UI_KEY, JSON.stringify({ filters: UI.filters, sort: UI.sort, byDim: UI.byDim, stats: UI.stats })); }
 function loadUI() {
   try {
     const u = JSON.parse(lsGet(UI_KEY) || '{}');
     if (u.filters) Object.assign(UI.filters, u.filters);
     if (u.sort) UI.sort = u.sort;
-    if (['sport','group','market'].includes(u.byDim)) UI.byDim = u.byDim;
+    if (['sport','group'].includes(u.byDim)) UI.byDim = u.byDim;
+    if (u.stats && typeof u.stats === 'object') statsLoad(u.stats);
   } catch {}
 }
 const DRAFT_FIELDS = ['e-sport','e-date','e-placed','e-comp','e-home','e-away','e-market','e-player','e-map','e-line','c-book1','c-book2','c-book3','c-sel1','c-sel2','c-sel3','c-odd1','c-odd2','c-odd3','c-comm1','c-comm2','c-comm3','c-value','c-m1','c-m2','c-m3','c-round','e-notes'];
@@ -4468,7 +4575,7 @@ function swapData() {
   if (UI.editingId) exitEdit(false);
   const migrated = applyData(lsGet(storeKey()));
   UI.lastOverdue = null;
-  UI.filters = { from: '', to: '', sport: '', book: '', status: '', q: '', sub: '', type: '' }; persistUI();
+  UI.filters = BLANK_FILTERS(); persistUI();
   renderAll();
   if (migrated) saveDB();
 }
@@ -5333,7 +5440,7 @@ async function copyText(text) {
 // =========================================================
 //  ESTRUCTURA · barra lateral, navegación, tema y páginas Panel / Ajustes / Perfil / Cuenta
 // =========================================================
-const APP_VERSION = 'v9';
+const APP_VERSION = 'v10';
 const TABS = { panel: 'Panel', calc: 'Registrar surebet', history: 'Historial', stats: 'Estadísticas', subs: 'Suscripciones', profile: 'Perfil', settings: 'Ajustes', account: 'Cuenta' };
 const THEME_KEY = 'suretrack.theme', SB_KEY = 'suretrack.sidebar';
 /** Emoji de cada deporte. Solo se usa para mostrar; lo que se guarda sigue siendo el nombre. */
@@ -5412,18 +5519,7 @@ function openDrawer(open) {
 }
 
 /* ---------- Páginas ---------- */
-const BLANK_FILTERS = () => ({ from: '', to: '', sport: '', book: '', status: '', q: '', sub: '', type: '' });
-/** Estadísticas (fase 1): los gráficos de siempre con todo el historial, sin depender de los filtros del Historial. */
-function renderStats() {
-  const empty = el('stats-empty');
-  if (empty) {
-    const none = !DB.records.length;
-    empty.classList.toggle('hidden', !none);
-    empty.innerHTML = none ? emptyState('Aún no hay datos para las estadísticas', 'Registra tu primera surebet o carga los datos de ejemplo para ver cómo quedan los gráficos.', [['Registrar surebet', 'data-tab="calc"', 'btn-primary'], ['Cargar datos de ejemplo', 'data-menu="demo"', 'btn-ghost']]) : '';
-  }
-  const keep = UI.filters; UI.filters = BLANK_FILTERS();
-  try { renderCharts(DB.records); } finally { UI.filters = keep; }
-}
+const BLANK_FILTERS = () => ({ from: '', to: '', sport: '', book: '', status: '', q: '', sub: '', type: '', market: '', pfrom: '', pto: '', wd: '' });
 /** Pantalla vacía: mensaje y botones que dicen qué hacer. */
 function emptyState(title, text, buttons = []) {
   return `<div class="card flex flex-col items-center gap-4 p-8 text-center">
@@ -6729,18 +6825,18 @@ function refreshFilters() {
   fb.innerHTML = `<option value="">Todas las casas</option>` + BRANDS.map(b => `<option>${b.name}</option>`).join('') + others.map(b => `<option>${esc(b)}</option>`).join('');
   fb.value = UI.filters.book; if (fb.value !== UI.filters.book) UI.filters.book = '';
 
-  const fsub = el('f-sub'), subs = [...DB.subs].sort((a, b) => b.start.localeCompare(a.start));
+  const fsub = el('f-sub');
   if (UI.filters.sub === 'bb') UI.filters.sub = 'any';   // compatibilidad v4
-  const byStart = [...DB.subs].sort((a, b) => a.start.localeCompare(b.start));
-  fsub.innerHTML = `<option value="">Todas las suscripciones</option>`
-    + (byStart.length ? `<optgroup label="Por suscripción (fecha de realización)">${byStart.map(x => `<option value="${esc(x.id)}">${esc(subLabel(x))}</option>`).join('')}</optgroup>` : '')
-    + `<optgroup label="Agrupado"><option value="any">Con suscripción activa</option><option value="none">Realizadas sin suscripción</option></optgroup>`;
+  fsub.innerHTML = subFilterOptions();
   fsub.value = UI.filters.sub || ''; if (fsub.value !== (UI.filters.sub || '')) UI.filters.sub = '';
   el('f-type').value = UI.filters.type || '';
 }
 
-function filtered() {
-  const f = UI.filters, q = normTxt(f.q);
+function filtered() { return filterRecords(UI.filters); }
+/** Registros que cumplen unos filtros (los del Historial o los que manda Estadísticas). */
+function filterRecords(f) {
+  const q = normTxt(f.q);
+  const wd = f.wd === 0 || f.wd ? String(f.wd) : '';
   return DB.records.filter(r => {
     const k = r.eventAt.slice(0, 10);
     if (f.from && k < f.from) return false;
@@ -6752,6 +6848,13 @@ function filtered() {
     if (f.sub) {
       const sub = subById(r.subId);
       if (f.sub === 'none' ? !!sub : f.sub === 'any' || f.sub === 'bb' ? !sub : r.subId !== f.sub) return false;
+    }
+    if (f.market && (f.market === '__none' ? !!r.market : r.market !== f.market)) return false;
+    if (f.pfrom || f.pto || wd) {                       // fecha de REALIZACIÓN (la que usan los gráficos de tiempo)
+      const pk = placedKey(r);
+      if (f.pfrom && pk < f.pfrom) return false;
+      if (f.pto && pk > f.pto) return false;
+      if (wd && String(parseDay(pk).getDay()) !== wd) return false;
     }
     if (q && !normTxt([r.match, r.competition, r.market, r.player, r.line, r.book1, r.book2, r.book3, r.sel1, r.sel2, r.sel3, r.notes, r.sport].join(' ')).includes(q)) return false;
     return true;
@@ -6765,6 +6868,7 @@ function quickRange(key) {
     case '7': return { from: dayKey(addDays(t, -6)), to: '' };
     case '30': return { from: dayKey(addDays(t, -29)), to: '' };
     case 'month': return { from: `${t.getFullYear()}-${pad(t.getMonth() + 1)}-01`, to: '' };
+    case 'year': return { from: `${t.getFullYear()}-01-01`, to: '' };
     default: return { from: '', to: '' };
   }
 }
@@ -6780,6 +6884,7 @@ function renderHistory() {
   renderSummary(list);
   renderTable(list);
   updateFilterToggle();
+  renderHistChips();
 }
 
 /** Cabecera cuando se filtra por una suscripción concreta. */
@@ -7743,101 +7848,6 @@ function chartEmpty(id, msg) {
   el(id).style.visibility = show ? 'hidden' : 'visible';
 }
 
-function renderCharts(list) {
-  const ids = ['ch-cum', 'ch-daily', 'ch-sport', 'ch-books'];
-  if (typeof window.Chart === 'undefined') { ids.forEach(id => chartEmpty(id, 'No se pudo cargar Chart.js (¿sin conexión?)')); return; }
-  const wonList = list.filter(r => r.status === 'won');
-  const subs = subsForFilter();
-  const T = buildTimeline(list, UI.filters.from, UI.filters.to, subs);
-  const fmtLbl = d => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
-
-  // 1 · Evolución acumulada (bruto vs neto tras suscripción)
-  if (!T || (!wonList.length && !subs.length)) chartEmpty('ch-cum', 'Sin surebets cobradas en este rango');
-  else {
-    chartEmpty('ch-cum');
-    const withCost = subs.length > 0;
-    const line = (label, data, color, fillTop) => ({ label, data, borderColor: color, backgroundColor: vGrad(color, fillTop), fill: 'origin', borderWidth: 2, pointRadius: 0,
-      pointHoverRadius: 4.5, pointHoverBorderWidth: 2, pointHoverBorderColor: C.bg, pointHoverBackgroundColor: color, tension: 0.32, cubicInterpolationMode: 'monotone' });
-    const ds = [line('Bruto acumulado', T.bruto, C.s1, 0.30)];
-    if (withCost) ds.push(line('Neto real (tras suscripción)', T.neto, C.s2, 0.16));
-    upsertChart('ch-cum', {
-      type: 'line',
-      data: { labels: T.days.map(fmtLbl), datasets: ds },
-      options: {
-        responsive: true, maintainAspectRatio: false, animation: { duration: 450, easing: 'easeOutQuart' },
-        layout: { padding: { right: 62, top: 6 } },
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: { display: withCost, position: 'top', align: 'end', labels: { color: C.ink2, usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 10, boxHeight: 10, padding: 16, font: { size: 14.5 },
-            generateLabels: ch => Chart.defaults.plugins.legend.labels.generateLabels(ch).map(l => ({ ...l, fillStyle: ch.data.datasets[l.datasetIndex].borderColor, strokeStyle: ch.data.datasets[l.datasetIndex].borderColor })) } },
-          tooltip: { ...TOOLTIP, callbacks: {
-            title: items => fmtDayLong(T.days[items[0].dataIndex]),
-            label: c => ` ${c.dataset.label}: ${fmtEur(c.parsed.y)}`,
-            footer: items => withCost ? [`Coste imputado: ${fmtEur(T.cost[items[0].dataIndex])}`] : [],
-          } },
-          crosshair: { enabled: true }, endLabels: { enabled: true }, zeroLine: { enabled: true, axis: 'y' },
-        },
-        scales: { x: xCat(), y: yEuro() },
-      },
-    });
-  }
-
-  // 2 · Beneficio por periodo (día o mes)
-  if (!T || !wonList.length) chartEmpty('ch-daily', 'Sin surebets cobradas en este rango');
-  else {
-    chartEmpty('ch-daily');
-    let labels, vals, titles;
-    if (T.days.length > 92) {
-      const m = new Map();
-      T.days.forEach((d, i) => { const k = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`; m.set(k, (m.get(k) || 0) + T.daily[i]); });
-      labels = [...m.keys()].map(k => { const [y, mo] = k.split('-'); return `${MONTHS[+mo - 1]} ${y.slice(2)}`; });
-      titles = labels; vals = [...m.values()].map(round2);
-      el('ch-daily-title').textContent = 'Beneficio por mes';
-    } else {
-      labels = T.days.map(fmtLbl); titles = T.days.map(fmtDayLong); vals = T.daily;
-      el('ch-daily-title').textContent = 'Beneficio por día';
-    }
-    upsertChart('ch-daily', {
-      type: 'bar',
-      data: { labels, datasets: [{ label: 'Beneficio', data: vals, backgroundColor: vals.map(v => v >= 0 ? hexA(C.s1, 0.85) : hexA(C.neg, 0.85)), hoverBackgroundColor: vals.map(v => v >= 0 ? C.s1b : C.negb),
-        borderRadius: 6, borderSkipped: false, maxBarThickness: 22, categoryPercentage: 0.82, barPercentage: 0.88 }] },
-      options: {
-        responsive: true, maintainAspectRatio: false, animation: { duration: 400 },
-        interaction: { mode: 'index', intersect: false },
-        plugins: { legend: { display: false }, zeroLine: { enabled: true, axis: 'y' }, tooltip: { ...TOOLTIP, callbacks: { title: it => titles[it[0].dataIndex], label: c => ` ${fmtSigned(c.parsed.y)}` } } },
-        scales: { x: xCat(), y: yEuro() },
-      },
-    });
-  }
-
-  // 3 · Por deporte / categoría / mercado
-  $$('#dim-seg [data-dim]').forEach(b => b.classList.toggle('is-active', b.dataset.dim === UI.byDim));
-  el('ch-sport-title').textContent = { sport: 'Beneficio por deporte', group: 'Beneficio por categoría', market: 'Beneficio por mercado' }[UI.byDim];
-  if (!wonList.length) chartEmpty('ch-sport', 'Sin surebets cobradas');
-  else {
-    chartEmpty('ch-sport');
-    const keyOf = UI.byDim === 'group' ? r => sportGroup(r.sport) : UI.byDim === 'market' ? r => r.market || 'Sin mercado' : r => r.sport;
-    const m = new Map(), cnt = new Map();
-    wonList.forEach(r => { const k = keyOf(r); m.set(k, (m.get(k) || 0) + realized(r)); cnt.set(k, (cnt.get(k) || 0) + 1); });
-    const rows = [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
-    const cfg = hBar(rows.map(r => r[0]), rows.map(r => round2(r[1])), c => ` ${fmtSigned(c.parsed.x)} · ${pl(cnt.get(c.label), 'surebet', 'surebets')}`);
-    cfg.options.scales.y.ticks.callback = function (v) { const r0 = this.getLabelForValue(v), l = UI.byDim === 'sport' ? sportLabel(r0) : r0; return l.length > 30 ? l.slice(0, 29) + '…' : l; };
-    upsertChart('ch-sport', cfg);
-  }
-
-  // 4 · Dinero movido por casa (colores de marca)
-  const active = list.filter(r => r.status !== 'void');
-  if (!active.length) chartEmpty('ch-books', 'Sin datos en este rango');
-  else {
-    chartEmpty('ch-books');
-    const m = new Map(), n = new Map();
-    active.forEach(r => { legsOf(r).forEach(i => { const b = r['book' + i]; m.set(b, (m.get(b) || 0) + r['stake' + i]); n.set(b, (n.get(b) || 0) + 1); }); });
-    let rows = [...m.entries()].sort((a, b) => b[1] - a[1]);
-    if (rows.length > 12) { const rest = rows.slice(11).reduce((a, r) => a + r[1], 0); rows = [...rows.slice(0, 11), ['Otras', rest]]; }
-    upsertChart('ch-books', hBar(rows.map(r => r[0]), rows.map(r => round2(r[1])), c => ` ${fmtEur(c.parsed.x)}${n.get(c.label) ? ` · ${n.get(c.label)} apuestas` : ''}`, rows.map(r => brandChart(r[0]))));
-  }
-}
-
 function hBar(labels, vals, labelCb, colors) {
   const bg = colors || vals.map(v => v >= 0 ? hexA(C.s1, 0.85) : hexA(C.neg, 0.85));
   return {
@@ -7853,6 +7863,552 @@ function hBar(labels, vals, labelCb, colors) {
       },
     },
   };
+}
+
+// =========================================================
+//  ESTADÍSTICAS (Fase 4)
+//  Filtros propios (periodo por fecha del evento, tipo y suscripción) → 7 KPIs → pestañas
+//  Casas · Deportes · Mercados · Suscripciones · Tiempo, cada una con gráfico y tabla ordenable.
+//  Mismas cuentas que el Historial: filterRecords(), totals(), realized(), costBetween(), buildTimeline().
+//  Pulsar una fila abre el Historial con esos mismos filtros (y la casa, deporte, mercado… de la fila).
+// =========================================================
+const ST_RANGES = { '7': '7 días', '30': '30 días', month: 'Este mes', year: 'Este año', all: 'Todo', custom: 'Personalizado' };
+const ST_TABS = { books: 'Casas', sports: 'Deportes', markets: 'Mercados', subs: 'Suscripciones', time: 'Tiempo' };
+const WDAY_NAMES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];   // índice = getDay()
+const WDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+const MARKET_TOP = 15;
+
+function statsLoad(s) {
+  const S = UI.stats;
+  if (ST_RANGES[s.range]) S.range = s.range;
+  ['from', 'to'].forEach(k => { if (typeof s[k] === 'string' && (!s[k] || parseDay(s[k]))) S[k] = s[k]; });
+  if (['', 'pre', 'live'].includes(s.type)) S.type = s.type;
+  if (typeof s.sub === 'string') S.sub = s.sub;
+  if (ST_TABS[s.tab]) S.tab = s.tab;
+  if (['profit', 'volume'].includes(s.bookView)) S.bookView = s.bookView;
+  if (['', 'day', 'week', 'month'].includes(s.timeBy)) S.timeBy = s.timeBy;
+  if (s.sort && typeof s.sort === 'object') S.sort = s.sort;
+}
+
+/** Filtros de Estadísticas con el mismo formato que los del Historial. */
+function statsFilter() {
+  const S = UI.stats;
+  let r = S.range === 'custom' ? { from: S.from, to: S.to } : quickRange(S.range);
+  if (r.from && r.to && r.from > r.to) r = { from: r.to, to: r.from };
+  if (S.sub && !['any', 'none'].includes(S.sub) && !subById(S.sub)) S.sub = '';
+  return Object.assign(BLANK_FILTERS(), { from: r.from || '', to: r.to || '', type: S.type, sub: S.sub });
+}
+
+/* ---------- Utilidades de tabla ---------- */
+const sgnCls = v => v > 0.004 ? 'text-emerald-300' : v < -0.004 ? 'text-rose-300' : 'text-zinc-200';
+const money = v => v == null ? '—' : `<span class="${sgnCls(v)}">${fmtSigned(v)}</span>`;
+const pctOr = (v, d = 1) => v == null || !isFinite(v) ? '—' : fmtPct(v, d);
+
+/**
+ * Tabla ordenable (escritorio) + tarjetas con selector de orden (móvil).
+ * cols: [{ k, label, num, val(row) → valor para ordenar, html(row) → celda }]; rows[].go = filtros para el Historial; rows[].pin = siempre abajo.
+ */
+function stTable(id, caption, cols, rows, defSort) {
+  const st = UI.stats.sort[id] && cols.some(c => c.k === UI.stats.sort[id].k) ? UI.stats.sort[id] : defSort;
+  const col = cols.find(c => c.k === st.k);
+  const cmp = (a, b) => {
+    const x = col.val(a), y = col.val(b);
+    if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1;   // los vacíos, siempre al final
+    const c = typeof x === 'string' ? x.localeCompare(y, 'es') : x - y;
+    return st.d === 'asc' ? c : -c;
+  };
+  const all = [...rows.filter(r => !r.pin).sort(cmp), ...rows.filter(r => r.pin)];
+  if (!all.length) return '';
+  const go = r => r.go ? ` data-go="${esc(JSON.stringify(r.go))}" title="Ver estas surebets en el Historial"` : '';
+  const ind = c => c.k === col.k ? (st.d === 'asc' ? '↑' : '↓') : '';
+  const head = cols.map(c => `<th class="th ${c.num ? 'text-right' : ''}" aria-sort="${c.k === col.k ? (st.d === 'asc' ? 'ascending' : 'descending') : 'none'}"><button type="button" data-ssort="${id}:${c.k}" class="inline-flex min-h-11 items-center gap-1 hover:text-zinc-200 ${c.k === col.k ? 'text-zinc-200' : ''}">${c.label}<span class="w-3" aria-hidden="true">${ind(c)}</span></button></th>`).join('');
+  const body = all.map(r => `<tr class="st-row${r.go ? ' is-link' : ''}${r.pin ? ' is-pin' : ''}"${go(r)}>${cols.map((c, j) => `<td class="td ${c.num ? 'num text-right' : ''}">${j === 0 && r.go ? `<button type="button" class="st-link">${c.html(r)}</button>` : c.html(r)}</td>`).join('')}</tr>`).join('');
+  const cards = all.map(r => `<div class="st-card${r.go ? ' is-link' : ''}${r.pin ? ' is-pin' : ''}"${go(r)}>
+      <div class="flex items-center justify-between gap-4">${r.go ? `<button type="button" class="st-link min-w-0 text-left">${cols[0].html(r)}</button><span class="text-[20px] text-zinc-500" aria-hidden="true">›</span>` : `<div class="min-w-0 font-semibold text-zinc-100">${cols[0].html(r)}</div>`}</div>
+      <dl class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">${cols.slice(1).map(c => `<div class="min-w-0"><dt class="text-[14px] text-zinc-400">${c.label}</dt><dd class="num break-words text-zinc-100">${c.html(r)}</dd></div>`).join('')}</dl>
+    </div>`).join('');
+  const opts = cols.flatMap(c => ['desc', 'asc'].map(d => `<option value="${c.k}:${d}"${c.k === col.k && d === st.d ? ' selected' : ''}>${c.label} · ${c.num ? (d === 'desc' ? 'mayor primero' : 'menor primero') : (d === 'desc' ? 'Z → A' : 'A → Z')}</option>`)).join('');
+  return `<div class="md:hidden">
+      <div class="px-6 pt-6"><label class="lbl" for="ss-${id}">Ordenar por</label><select id="ss-${id}" class="inp" data-ssel="${id}">${opts}</select></div>
+      <div class="st-cards">${cards}</div>
+    </div>
+    <div class="tbl-wrap hidden md:block"><table class="w-full text-[16px]"><caption class="sr-only">${esc(caption)}</caption><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+/* ---------- Cálculos por pestaña (con las funciones de siempre) ---------- */
+/** Resultado neto de cada casa en una surebet cobrada; null si no se sabe qué casa ganó. */
+function legNets(r) {
+  const ids = legsOf(r);
+  let v;
+  if (hasCash(r)) v = ids.map(i => r['cn' + i]);
+  else if (hasRes(r)) v = ids.map(i => resPayout(r['stake' + i], effOdd(r['odd' + i], r['comm' + i]), r['rs' + i]) - r['stake' + i]);
+  else if (r.winner) v = ids.map(i => String(i) === r.winner ? r['stake' + i] * effOdd(r['odd' + i], r['comm' + i]) - r['stake' + i] : -r['stake' + i]);
+  else return null;
+  const diff = realized(r) - v.reduce((a, x) => a + x, 0);   // céntimos de redondeo: así la suma cuadra con el beneficio de la surebet
+  v[v.indexOf(Math.max(...v))] += diff;
+  return v;
+}
+function bookStats(list) {
+  const m = new Map(), none = { n: 0, net: 0 };
+  const get = b => { let o = m.get(b); if (!o) m.set(b, o = { name: b, legs: 0, stake: 0, oddSum: 0, net: 0, known: 0, won: 0 }); return o; };
+  for (const r of list) {
+    if (r.status === 'void') continue;
+    const ids = legsOf(r);
+    ids.forEach(i => { const o = get(r['book' + i]); o.legs++; o.stake += r['stake' + i]; o.oddSum += r['odd' + i]; });
+    if (r.status !== 'won') continue;
+    const nets = legNets(r);
+    if (!nets) { none.n++; none.net += realized(r); continue; }
+    ids.forEach((i, k) => { const o = get(r['book' + i]); o.net += nets[k]; o.known++; if (nets[k] > 0.004) o.won++; });
+  }
+  const rows = [...m.values()].map(o => ({ ...o, odd: o.legs ? o.oddSum / o.legs : null, winPct: o.known ? o.won / o.known * 100 : null, go: { book: o.name } }));
+  return { rows, none };
+}
+function groupStats(list, keyOf) {
+  const m = new Map();
+  list.forEach(r => { const k = keyOf(r); if (!m.has(k)) m.set(k, []); m.get(k).push(r); });
+  return [...m.entries()].map(([key, rs]) => {
+    const t = totals(rs);
+    return { key, n: t.n, won: t.won, volume: t.volume, gross: t.gross, yld: t.volumeWon > 0 ? t.yield : null, avgRoi: t.roiN ? t.avgRoi : null };
+  });
+}
+/** Días en que la suscripción estuvo activa (sin congelar) dentro del rango y hasta hoy. */
+function subActiveDays(s, fromK, toK) {
+  const today = todayKey(), a = fromK && fromK > s.start ? fromK : s.start, b = toK && toK < today ? toK : today;
+  let n = 0;
+  for (let d = parseDay(a), i = 0; d && i < 5000; d = addDays(d, 1), i++) { const k = dayKey(d); if (k > b) break; if (subActiveOn(s, k)) n++; }
+  return n;
+}
+function subRows(list, f) {
+  const rows = subsForFilter(f.sub).map(s => {
+    const t = totals(list.filter(r => r.subId === s.id));
+    const cost = costBetween([s], f.from, f.to), days = subActiveDays(s, f.from, f.to);
+    const perDay = days > 0 ? t.gross / days : null, pend = cost - t.gross;
+    const amort = cost <= 0 ? null : pend <= 0 ? 0 : perDay > 0 ? Math.ceil(pend / perDay) : Infinity;
+    return { name: subLabel(s), n: t.n, cost, gross: t.gross, roi: cost > 0 ? (t.gross - cost) / cost * 100 : null, perDay, days, amort, go: { sub: s.id } };
+  });
+  const loose = list.filter(r => !subById(r.subId));
+  if (loose.length && f.sub !== 'any') { const t = totals(loose); rows.push({ name: 'Sin suscripción', n: t.n, cost: 0, gross: t.gross, roi: null, perDay: null, days: 0, amort: null, go: { sub: 'none' }, pin: true }); }
+  return rows;
+}
+const amortTxt = r => r.amort == null ? '—' : r.amort === 0 ? '<span class="text-emerald-300">Amortizada</span>' : r.amort === Infinity ? 'Sin beneficio aún' : pl(r.amort, 'día', 'días');
+
+/** Periodo para agrupar en Tiempo: el elegido o uno automático según la duración. */
+function timeBy(T) { return UI.stats.timeBy || (T.days.length <= 45 ? 'day' : T.days.length <= 200 ? 'week' : 'month'); }
+const mondayOf = d => addDays(d, -((d.getDay() + 6) % 7));
+function periodKey(d, by) { return by === 'day' ? dayKey(d) : by === 'week' ? dayKey(mondayOf(d)) : `${d.getFullYear()}-${pad(d.getMonth() + 1)}`; }
+function periodSpan(key, by) {
+  if (by === 'day') return [key, key];
+  if (by === 'week') return [key, dayKey(addDays(parseDay(key), 6))];
+  const [y, m] = key.split('-').map(Number); return [`${key}-01`, dayKey(new Date(y, m, 0))];
+}
+function periodLabel(key, by, long) {
+  if (by === 'month') { const [y, m] = key.split('-'); return long ? `${MONTHS[+m - 1]} ${y}` : `${MONTHS[+m - 1]} ${y.slice(2)}`; }
+  const d = parseDay(key);
+  if (by === 'week') return long ? `Semana del ${fmtDayLong(d)}` : `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
+  return long ? `${WDAY_NAMES[d.getDay()].slice(0, 3)} ${fmtDayLong(d)}` : `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
+}
+function timeRows(list, T, by) {
+  const startK = dayKey(T.days[0]), endK = dayKey(T.days[T.days.length - 1]);
+  const m = new Map();
+  const row = k => { let o = m.get(k); if (!o) m.set(k, o = { key: k, n: 0, won: 0, gross: 0, volWon: 0, cost: 0 }); return o; };
+  list.forEach(r => {
+    let k = placedKey(r); if (k < startK) k = startK; if (k > endK) k = endK;      // igual que buildTimeline
+    const o = row(periodKey(parseDay(k), by)); o.n++;
+    if (r.status === 'won') { o.won++; o.gross += realized(r); o.volWon += r.bank; }
+  });
+  T.days.forEach((d, i) => { const c = T.cost[i] - (i ? T.cost[i - 1] : 0); if (Math.abs(c) > 1e-9) row(periodKey(d, by)).cost += c; });
+  return [...m.values()].map(o => {
+    const [a, b] = periodSpan(o.key, by);
+    return { ...o, net: o.gross - o.cost, yld: o.volWon > 0 ? o.gross / o.volWon * 100 : null, label: periodLabel(o.key, by, true),
+      go: o.n ? { pfrom: a <= startK ? '' : a, pto: b >= endK ? '' : b } : null };
+  });
+}
+function wdayRows(list) {
+  const rows = WDAY_ORDER.map((d, i) => ({ d, order: i, name: WDAY_NAMES[d][0].toUpperCase() + WDAY_NAMES[d].slice(1), n: 0, won: 0, gross: 0, volWon: 0 }));
+  const by = Object.fromEntries(rows.map(r => [r.d, r]));
+  list.forEach(r => { const o = by[parseDay(placedKey(r)).getDay()]; o.n++; if (r.status === 'won') { o.won++; o.gross += realized(r); o.volWon += r.bank; } });
+  return rows.map(o => ({ ...o, avg: o.won ? o.gross / o.won : null, yld: o.volWon > 0 ? o.gross / o.volWon * 100 : null, go: o.n ? { wd: String(o.d) } : null }));
+}
+
+/* ---------- Pintar ---------- */
+function renderStats() {
+  const has = DB.records.length > 0;
+  const empty = el('stats-empty'), body = el('stats-body');
+  if (empty) {
+    empty.classList.toggle('hidden', has);
+    empty.innerHTML = has ? '' : emptyState('Aún no hay datos para las estadísticas', 'Registra tu primera surebet o carga los datos de ejemplo para ver cómo quedan los gráficos.', [['Registrar surebet', 'data-tab="calc"', 'btn-primary'], ['Cargar datos de ejemplo', 'data-menu="demo"', 'btn-ghost']]);
+  }
+  if (!body) return;
+  body.classList.toggle('hidden', !has);
+  if (!has) return;
+  const S = UI.stats, f = statsFilter(), list = filterRecords(f);
+  // Filtros
+  $$('#st-range [data-srange]').forEach(b => { const on = b.dataset.srange === S.range; b.classList.toggle('is-active', on); b.setAttribute('aria-pressed', String(on)); });
+  const act = el('st-range').querySelector('.is-active'), rg = el('st-range');
+  if (act && rg.scrollWidth > rg.clientWidth) { const x = act.getBoundingClientRect().left - rg.getBoundingClientRect().left + rg.scrollLeft; rg.scrollLeft = Math.max(0, x - rg.clientWidth / 2 + act.offsetWidth / 2); }   // móvil: el periodo elegido, a la vista
+  el('st-custom').classList.toggle('hidden', S.range !== 'custom');
+  if (document.activeElement !== el('st-from')) el('st-from').value = S.range === 'custom' ? S.from : f.from;
+  if (document.activeElement !== el('st-to')) el('st-to').value = S.range === 'custom' ? S.to : f.to;
+  el('st-type').value = S.type;
+  const ss = el('st-sub'); ss.innerHTML = subFilterOptions(); ss.value = S.sub; if (ss.value !== S.sub) { S.sub = ''; ss.value = ''; }
+  const span = f.from || f.to ? `${f.from ? fmtDayLong(parseDay(f.from)) : 'el principio'} → ${f.to ? fmtDayLong(parseDay(f.to)) : 'hoy'}` : 'Todo tu historial';
+  el('st-reset').classList.toggle('hidden', S.range === 'all' && !S.type && !S.sub);
+  el('st-scope').textContent = `${span} · por fecha del evento · ${pl(list.length, 'surebet', 'surebets')}`;
+  // KPIs (las mismas cuentas que el resumen del Historial)
+  const t = totals(list), subs = subsForFilter(f.sub), cost = costBetween(subs, f.from, f.to), net = t.gross - cost;
+  const tile = (label, value, sub, cls = '', extra = '') => `<div class="stat ${extra}"><div class="stat-label">${label}</div><div class="stat-value num ${cls}">${value}</div><div class="mt-1 text-[14px] text-zinc-400">${sub}</div></div>`;
+  const tone = v => v >= 0 ? '!text-emerald-400' : '!text-rose-400';
+  el('st-kpis').innerHTML =
+    tile('Beneficio neto real', fmtSigned(net), `Bruto − coste de suscripciones${cost > 0 ? ` · ROI ${fmtPct(net / cost * 100, 1)}` : ''}`, tone(net), 'col-span-2 st-hero') +
+    tile('Beneficio bruto', fmtSigned(t.gross), 'Surebets cobradas', tone(t.gross)) +
+    tile('Coste de suscripciones', fmtEur(cost), f.sub === 'none' ? 'Sin suscripción: sin coste' : subs.length ? `${pl(subs.length, 'suscripción', 'suscripciones')}${f.from || f.to ? ' · en el periodo' : ''}` : 'Sin suscripciones') +
+    tile('Surebets', String(t.n), `${t.won} cobr. · ${t.pending} pend. · ${pl(t.void, 'nula', 'nulas')}`) +
+    tile('Dinero movido', fmtEur(t.volume), 'Suma de stakes (sin nulas)') +
+    tile('Yield', fmtPct(t.yield), 'Bruto / dinero cobrado') +
+    tile('Beneficio medio', t.won ? fmtSigned(t.avgProfit) : '—', 'Por surebet cobrada', t.won ? tone(t.avgProfit) : '');
+  // Pestañas
+  $$('#st-tabs [data-stab]').forEach(b => { const on = b.dataset.stab === S.tab; b.classList.toggle('is-active', on); b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; });
+  $$('.st-panel').forEach(p => p.classList.toggle('hidden', p.id !== 'stp-' + S.tab));
+  if (typeof window.Chart === 'undefined') $$('#stats-body canvas').forEach(c => chartEmpty(c.id, 'No se pudo cargar Chart.js (¿sin conexión?)'));
+  const focus = statsFocusKey();
+  ({ books: statsBooks, sports: statsSports, markets: statsMarkets, subs: statsSubs, time: statsTime })[S.tab](list, f, subs);
+  statsRestoreFocus(focus);
+  Object.keys(CH).forEach(k => { if (!document.body.contains(CH[k].canvas)) { try { CH[k].destroy(); } catch {} delete CH[k]; } });
+}
+const chartOk = () => typeof window.Chart !== 'undefined';
+/** Alto de un gráfico de barras horizontales según cuántas barras tenga. */
+const fitH = (id, n) => { const box = el(id).parentElement; box.style.height = `${Math.max(240, n * 36 + 56)}px`; };
+const noRows = (msg = 'Sin surebets en este periodo') => `<div class="flex flex-col items-center gap-4 p-8 text-center"><p class="text-zinc-400">${esc(msg)}</p><button type="button" class="btn-ghost" data-st-all>Ver todo el historial</button></div>`;
+
+function statsBooks(list) {
+  const { rows, none } = bookStats(list), view = UI.stats.bookView;
+  $$('#stp-books [data-bookview]').forEach(b => b.classList.toggle('is-active', b.dataset.bookview === view));
+  el('st-books-title').textContent = view === 'volume' ? 'Dinero movido por casa' : 'Beneficio neto por casa';
+  el('st-books-sub').textContent = view === 'volume' ? 'Suma de stakes (sin nulas)' : 'Lo que ganaste o perdiste en cada casa con las surebets cobradas';
+  if (chartOk()) {
+    if (!rows.length) chartEmpty('ch-books', 'Sin datos en este periodo');
+    else {
+      chartEmpty('ch-books');
+      let data;
+      if (view === 'volume') {
+        data = [...rows].sort((a, b) => b.stake - a.stake).map(r => [r.name, r.stake, r.legs]);
+        if (data.length > 12) { const rest = data.slice(11); data = [...data.slice(0, 11), ['Otras', rest.reduce((a, r) => a + r[1], 0), rest.reduce((a, r) => a + r[2], 0)]]; }
+      } else {   // beneficio: las casas que más ganan y las que más pierden, cada una con su barra
+        const byAbs = [...rows].sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
+        const keep = byAbs.slice(0, 19), rest = byAbs.slice(19);
+        data = keep.sort((a, b) => b.net - a.net).map(r => [r.name, r.net, r.legs]);
+        if (rest.length) data.push([`Resto (${rest.length} casas)`, rest.reduce((a, r) => a + r.net, 0), rest.reduce((a, r) => a + r.legs, 0)]);
+      }
+      if (view === 'profit' && none.n) data.push(['Sin casa ganadora', none.net, 0]);
+      fitH('ch-books', data.length);
+      const colors = view === 'volume' ? data.map(r => brandChart(r[0])) : data.map(r => r[0] === 'Sin casa ganadora' ? hexA(C.s2, 0.6) : r[1] >= 0 ? hexA(C.s1, 0.85) : hexA(C.neg, 0.85));
+      upsertChart('ch-books', hBar(data.map(r => r[0]), data.map(r => round2(r[1])), c => { const r = data[c.dataIndex]; return ` ${view === 'volume' ? fmtEur(c.parsed.x) : fmtSigned(c.parsed.x)}${r[2] ? ` · ${pl(r[2], 'pata', 'patas')}` : ''}`; }, colors));
+    }
+  }
+  const pinned = none.n ? [{ name: 'Sin casa ganadora', legs: null, stake: null, net: none.net, winPct: null, odd: null, pin: true, go: null }] : [];
+  el('st-books-table').innerHTML = stTable('books', 'Resultados por casa', [
+    { k: 'name', label: 'Casa', val: r => r.name, html: r => r.pin ? '<span class="text-zinc-300">Sin casa ganadora</span>' : brandBadge(r.name) },
+    { k: 'legs', label: 'Patas', num: true, val: r => r.legs, html: r => r.legs == null ? '—' : String(r.legs) },
+    { k: 'stake', label: 'Dinero movido', num: true, val: r => r.stake, html: r => r.stake == null ? '—' : fmtEur(r.stake) },
+    { k: 'net', label: 'Beneficio neto', num: true, val: r => r.net, html: r => money(r.net) },
+    { k: 'winPct', label: '% patas ganadas', num: true, val: r => r.winPct, html: r => pctOr(r.winPct, 0) },
+    { k: 'odd', label: 'Cuota media', num: true, val: r => r.odd, html: r => r.odd == null ? '—' : fmtOdd(round2(r.odd)) },
+  ], [...rows, ...pinned], { k: 'net', d: 'desc' }) || noRows();
+  el('st-books-note').innerHTML = none.n ? `${pl(none.n, 'surebet cobrada no tiene', 'surebets cobradas no tienen')} casa ganadora indicada: su beneficio (${fmtSigned(none.net)}) va en «Sin casa ganadora». Indícala en el Historial para repartirlo.` : '';
+  el('st-books-note').classList.toggle('hidden', !none.n);
+}
+
+function statsSports(list) {
+  const dim = UI.byDim === 'group' ? 'group' : 'sport';
+  $$('#stp-sports [data-dim]').forEach(b => b.classList.toggle('is-active', b.dataset.dim === dim));
+  el('st-sports-title').textContent = dim === 'group' ? 'Beneficio por categoría' : 'Beneficio por deporte';
+  const rows = groupStats(list, dim === 'group' ? r => sportGroup(r.sport) : r => r.sport);
+  const lbl = k => dim === 'sport' ? sportLabel(k) : k;
+  if (chartOk()) {
+    const top = rows.filter(r => r.won).sort((a, b) => b.gross - a.gross).slice(0, 10);
+    if (!top.length) chartEmpty('ch-sport', 'Sin surebets cobradas en este periodo');
+    else {
+      chartEmpty('ch-sport'); fitH('ch-sport', top.length);
+      const cfg = hBar(top.map(r => r.key), top.map(r => round2(r.gross)), c => ` ${fmtSigned(c.parsed.x)} · ${pl(top[c.dataIndex].won, 'surebet', 'surebets')}`);
+      cfg.options.scales.y.ticks.callback = function (v) { const l = lbl(this.getLabelForValue(v)); return l.length > 30 ? l.slice(0, 29) + '…' : l; };
+      upsertChart('ch-sport', cfg);
+    }
+  }
+  el('st-sports-table').innerHTML = stTable('sports', dim === 'group' ? 'Resultados por categoría' : 'Resultados por deporte', [
+    { k: 'key', label: dim === 'group' ? 'Categoría' : 'Deporte', val: r => r.key, html: r => esc(lbl(r.key)) },
+    { k: 'n', label: 'Surebets', num: true, val: r => r.n, html: r => String(r.n) },
+    { k: 'volume', label: 'Dinero movido', num: true, val: r => r.volume, html: r => fmtEur(r.volume) },
+    { k: 'gross', label: 'Beneficio', num: true, val: r => r.gross, html: r => money(r.gross) },
+    { k: 'yld', label: 'Yield', num: true, val: r => r.yld, html: r => pctOr(r.yld, 2) },
+    { k: 'avgRoi', label: '% medio surebet', num: true, val: r => r.avgRoi, html: r => pctOr(r.avgRoi, 2) },
+  ], rows.map(r => ({ ...r, go: { sport: dim === 'group' ? 'g:' + r.key : r.key } })), { k: 'gross', d: 'desc' }) || noRows();
+}
+
+function statsMarkets(list) {
+  const all = groupStats(list, r => r.market || '').sort((a, b) => b.n - a.n || b.gross - a.gross);
+  const top = all.slice(0, MARKET_TOP), rest = all.slice(MARKET_TOP);
+  const name = k => k || 'Sin mercado';
+  let other = null;
+  if (rest.length) {
+    const rs = list.filter(r => rest.some(x => x.key === (r.market || ''))), t = totals(rs);
+    other = { key: `Otros (${pl(rest.length, 'mercado', 'mercados')})`, n: t.n, won: t.won, volume: t.volume, gross: t.gross, yld: t.volumeWon > 0 ? t.yield : null, avgRoi: t.roiN ? t.avgRoi : null, pin: true, other: true };
+  }
+  el('st-markets-sub').textContent = `Los ${Math.min(MARKET_TOP, all.length)} mercados con más surebets${rest.length ? ' · el resto, juntos en «Otros»' : ''}`;
+  if (chartOk()) {
+    const bars = [...top].filter(r => r.n).sort((a, b) => b.gross - a.gross).map(r => [name(r.key), r.gross, r.won]);
+    if (other) bars.push(['Otros', other.gross, other.won]);
+    if (!bars.length) chartEmpty('ch-market', 'Sin surebets en este periodo');
+    else {
+      chartEmpty('ch-market'); fitH('ch-market', bars.length);
+      const cfg = hBar(bars.map(r => r[0]), bars.map(r => round2(r[1])), c => ` ${fmtSigned(c.parsed.x)} · ${pl(bars[c.dataIndex][2], 'cobrada', 'cobradas')}`);
+      cfg.options.scales.y.ticks.callback = function (v) { const l = this.getLabelForValue(v); return l.length > 30 ? l.slice(0, 29) + '…' : l; };
+      upsertChart('ch-market', cfg);
+    }
+  }
+  el('st-markets-table').innerHTML = stTable('markets', 'Resultados por mercado', [
+    { k: 'key', label: 'Mercado', val: r => r.other ? '' : name(r.key), html: r => r.other ? `<span class="text-zinc-300">${esc(r.key)}</span>` : esc(name(r.key)) },
+    { k: 'n', label: 'Surebets', num: true, val: r => r.n, html: r => String(r.n) },
+    { k: 'volume', label: 'Dinero movido', num: true, val: r => r.volume, html: r => fmtEur(r.volume) },
+    { k: 'gross', label: 'Beneficio', num: true, val: r => r.gross, html: r => money(r.gross) },
+    { k: 'yld', label: 'Yield', num: true, val: r => r.yld, html: r => pctOr(r.yld, 2) },
+    { k: 'avgRoi', label: '% medio surebet', num: true, val: r => r.avgRoi, html: r => pctOr(r.avgRoi, 2) },
+  ], [...top.map(r => ({ ...r, go: { market: r.key || '__none' } })), ...(other ? [other] : [])], { k: 'n', d: 'desc' }) || noRows();
+}
+
+function statsSubs(list, f) {
+  const rows = subRows(list, f);
+  if (chartOk()) {
+    if (!rows.length) chartEmpty('ch-subs', f.sub === 'none' ? 'Filtro «sin suscripción»: no hay suscripciones que mostrar' : 'Sin suscripciones en este periodo');
+    else {
+      chartEmpty('ch-subs'); fitH('ch-subs', rows.length * 1.6);
+      const labels = rows.map(r => r.name.length > 34 ? r.name.slice(0, 33) + '…' : r.name);
+      upsertChart('ch-subs', {
+        type: 'bar',
+        data: { labels, datasets: [
+          { label: 'Beneficio bruto', data: rows.map(r => round2(r.gross)), backgroundColor: rows.map(r => r.gross >= 0 ? hexA(C.s1, 0.85) : hexA(C.neg, 0.85)), borderRadius: 6, borderSkipped: false, maxBarThickness: 16, categoryPercentage: 0.78, barPercentage: 0.9 },
+          { label: 'Coste', data: rows.map(r => round2(r.cost)), backgroundColor: hexA(C.s2, 0.7), borderRadius: 6, borderSkipped: false, maxBarThickness: 16, categoryPercentage: 0.78, barPercentage: 0.9 },
+        ] },
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: { duration: 400 },
+          interaction: { mode: 'index', axis: 'y', intersect: false },
+          plugins: { legend: { display: true, position: 'top', align: 'end', labels: { color: C.ink2, usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 10, boxHeight: 10, padding: 16 } }, zeroLine: { enabled: true, axis: 'x' },
+            tooltip: { ...TOOLTIP, callbacks: { title: it => rows[it[0].dataIndex].name, label: c => ` ${c.dataset.label}: ${c.datasetIndex === 0 ? fmtSigned(c.parsed.x) : fmtEur(c.parsed.x)}` } } },
+          scales: {
+            x: { grid: { color: C.grid, drawTicks: false }, border: { display: false }, ticks: { color: C.muted, padding: 6, font: { family: MONO, size: 14 }, callback: v => fmtEurShort(v), maxTicksLimit: 6 } },
+            y: { grid: { display: false }, border: { color: C.axis }, ticks: { color: C.ink2, font: { size: 14 } } },
+          },
+        },
+      });
+    }
+  }
+  el('st-subs-table').innerHTML = stTable('subs', 'Resultados por suscripción', [
+    { k: 'name', label: 'Suscripción', val: r => r.name, html: r => esc(r.name) },
+    { k: 'n', label: 'Surebets', num: true, val: r => r.n, html: r => String(r.n) },
+    { k: 'cost', label: 'Coste', num: true, val: r => r.cost, html: r => fmtEur(r.cost) },
+    { k: 'gross', label: 'Beneficio', num: true, val: r => r.gross, html: r => money(r.gross) },
+    { k: 'roi', label: 'ROI neto', num: true, val: r => r.roi, html: r => r.roi == null ? '—' : `<span class="${sgnCls(r.roi)}">${fmtPct(r.roi, 0)}</span>` },
+    { k: 'perDay', label: 'Beneficio / día', num: true, val: r => r.perDay, html: r => r.perDay == null ? '—' : money(r.perDay) },
+    { k: 'amort', label: 'Días para amortizar', num: true, val: r => r.amort, html: amortTxt },
+  ], rows, { k: 'gross', d: 'desc' }) || noRows(f.sub === 'none' ? 'Con el filtro «sin suscripción» no hay suscripciones que comparar.' : 'Sin suscripciones en este periodo');
+}
+
+function statsTime(list, f, subs) {
+  const T = buildTimeline(list, f.from, f.to, subs);
+  const wonList = list.filter(r => r.status === 'won');
+  const fmtLbl = d => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
+  const by = T ? timeBy(T) : 'day';
+  $$('#stp-time [data-timeby]').forEach(b => b.classList.toggle('is-active', b.dataset.timeby === by));
+  el('ch-daily-title').textContent = { day: 'Beneficio por día', week: 'Beneficio por semana', month: 'Beneficio por mes' }[by];
+  if (chartOk()) {
+    // 1 · Evolución acumulada (bruto vs neto tras suscripción)
+    if (!T || (!wonList.length && !subs.length)) chartEmpty('ch-cum', 'Sin surebets cobradas en este periodo');
+    else {
+      chartEmpty('ch-cum');
+      const withCost = subs.length > 0;
+      const line = (label, data, color, fillTop) => ({ label, data, borderColor: color, backgroundColor: vGrad(color, fillTop), fill: 'origin', borderWidth: 2, pointRadius: 0,
+        pointHoverRadius: 4.5, pointHoverBorderWidth: 2, pointHoverBorderColor: C.bg, pointHoverBackgroundColor: color, tension: 0.32, cubicInterpolationMode: 'monotone' });
+      const ds = [line('Bruto acumulado', T.bruto, C.s1, 0.30)];
+      if (withCost) ds.push(line('Neto real (tras suscripción)', T.neto, C.s2, 0.16));
+      upsertChart('ch-cum', {
+        type: 'line',
+        data: { labels: T.days.map(fmtLbl), datasets: ds },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: { duration: 450, easing: 'easeOutQuart' },
+          layout: { padding: { right: 62, top: 6 } },
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: withCost, position: 'top', align: 'end', labels: { color: C.ink2, usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 10, boxHeight: 10, padding: 16, font: { size: 14.5 },
+              generateLabels: ch => Chart.defaults.plugins.legend.labels.generateLabels(ch).map(l => ({ ...l, fillStyle: ch.data.datasets[l.datasetIndex].borderColor, strokeStyle: ch.data.datasets[l.datasetIndex].borderColor })) } },
+            tooltip: { ...TOOLTIP, callbacks: {
+              title: items => fmtDayLong(T.days[items[0].dataIndex]),
+              label: c => ` ${c.dataset.label}: ${fmtEur(c.parsed.y)}`,
+              footer: items => withCost ? [`Coste imputado: ${fmtEur(T.cost[items[0].dataIndex])}`] : [],
+            } },
+            crosshair: { enabled: true }, endLabels: { enabled: true }, zeroLine: { enabled: true, axis: 'y' },
+          },
+          scales: { x: xCat(), y: yEuro() },
+        },
+      });
+    }
+    // 2 · Beneficio por día, semana o mes
+    if (!T || !wonList.length) chartEmpty('ch-daily', 'Sin surebets cobradas en este periodo');
+    else {
+      chartEmpty('ch-daily');
+      const m = new Map();
+      T.days.forEach((d, i) => { const k = periodKey(d, by); m.set(k, (m.get(k) || 0) + T.daily[i]); });
+      const keys = [...m.keys()], vals = [...m.values()].map(round2);
+      const labels = keys.map(k => periodLabel(k, by, false)), titles = keys.map(k => periodLabel(k, by, true));
+      upsertChart('ch-daily', {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Beneficio', data: vals, backgroundColor: vals.map(v => v >= 0 ? hexA(C.s1, 0.85) : hexA(C.neg, 0.85)), hoverBackgroundColor: vals.map(v => v >= 0 ? C.s1b : C.negb),
+          borderRadius: 6, borderSkipped: false, maxBarThickness: 22, categoryPercentage: 0.82, barPercentage: 0.88 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: { duration: 400 },
+          interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { display: false }, zeroLine: { enabled: true, axis: 'y' }, tooltip: { ...TOOLTIP, callbacks: { title: it => titles[it[0].dataIndex], label: c => ` ${fmtSigned(c.parsed.y)}` } } },
+          scales: { x: xCat(), y: yEuro() },
+        },
+      });
+    }
+  }
+  // 3 · Día de la semana (fecha de realización)
+  const wd = wdayRows(list);
+  if (chartOk()) {
+    if (!wonList.length) chartEmpty('ch-wday', 'Sin surebets cobradas en este periodo');
+    else {
+      chartEmpty('ch-wday');
+      const vals = wd.map(r => round2(r.gross));
+      upsertChart('ch-wday', {
+        type: 'bar',
+        data: { labels: wd.map(r => r.name.slice(0, 3)), datasets: [{ label: 'Beneficio', data: vals, backgroundColor: vals.map(v => v >= 0 ? hexA(C.s1, 0.85) : hexA(C.neg, 0.85)), hoverBackgroundColor: vals.map(v => v >= 0 ? C.s1b : C.negb), borderRadius: 6, borderSkipped: false, maxBarThickness: 32 }] },
+        options: { responsive: true, maintainAspectRatio: false, animation: { duration: 400 }, interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { display: false }, zeroLine: { enabled: true, axis: 'y' }, tooltip: { ...TOOLTIP, callbacks: { title: it => wd[it[0].dataIndex].name, label: c => ` ${fmtSigned(c.parsed.y)} · ${pl(wd[c.dataIndex].won, 'cobrada', 'cobradas')}` } } },
+          scales: { x: xCat(), y: yEuro() } },
+      });
+    }
+  }
+  el('st-wday-table').innerHTML = stTable('wday', 'Resultados por día de la semana', [
+    { k: 'order', label: 'Día', val: r => r.order, html: r => esc(r.name) },
+    { k: 'n', label: 'Surebets', num: true, val: r => r.n, html: r => String(r.n) },
+    { k: 'gross', label: 'Beneficio', num: true, val: r => r.gross, html: r => money(r.gross) },
+    { k: 'avg', label: 'Media por cobrada', num: true, val: r => r.avg, html: r => r.avg == null ? '—' : money(r.avg) },
+    { k: 'yld', label: 'Yield', num: true, val: r => r.yld, html: r => pctOr(r.yld, 2) },
+  ], wd, { k: 'order', d: 'asc' });
+  // 4 · Tabla por periodo
+  const rows = T ? timeRows(list, T, by) : [];
+  el('st-time-title').textContent = { day: 'Día a día', week: 'Semana a semana', month: 'Mes a mes' }[by];
+  el('st-time-table').innerHTML = stTable('time', 'Resultados por periodo', [
+    { k: 'key', label: { day: 'Día', week: 'Semana', month: 'Mes' }[by], val: r => r.key, html: r => esc(r.label) },
+    { k: 'n', label: 'Surebets', num: true, val: r => r.n, html: r => String(r.n) },
+    { k: 'gross', label: 'Beneficio bruto', num: true, val: r => r.gross, html: r => money(r.gross) },
+    { k: 'cost', label: 'Coste', num: true, val: r => r.cost, html: r => fmtEur(r.cost) },
+    { k: 'net', label: 'Neto real', num: true, val: r => r.net, html: r => money(r.net) },
+    { k: 'yld', label: 'Yield', num: true, val: r => r.yld, html: r => pctOr(r.yld, 2) },
+  ], rows, { k: 'key', d: 'desc' }) || noRows();
+}
+
+/* ---------- Ir al Historial con los mismos filtros ---------- */
+function goHistory(patch) {
+  const f = statsFilter();
+  UI.filters = Object.assign(BLANK_FILTERS(), { from: f.from, to: f.to, type: f.type, sub: f.sub }, patch || {});
+  UI.limit = 50; UI.fromStats = true;
+  persistUI();
+  setTab('history');
+}
+
+/* ---------- Foco: la tabla se repinta al sincronizar; el foco vuelve a su sitio ---------- */
+function statsFocusKey() {
+  const a = document.activeElement; if (!a || !el('stats-body') || !el('stats-body').contains(a)) return null;
+  if (a.dataset.ssort) return `[data-ssort="${a.dataset.ssort}"]`;
+  if (a.dataset.ssel) return `[data-ssel="${a.dataset.ssel}"]`;
+  const row = a.closest('[data-go]'); if (row) return { go: row.dataset.go, card: row.classList.contains('st-card') };
+  return null;
+}
+function statsRestoreFocus(k) {
+  if (!k) return;
+  let t = null;
+  if (typeof k === 'string') t = document.querySelector(k);
+  else t = [...$$(k.card ? '.st-card[data-go]' : 'tr[data-go]')].find(x => x.dataset.go === k.go)?.querySelector('.st-link');
+  if (t && t.getClientRects().length) t.focus({ preventScroll: true });
+}
+
+/* ---------- Opciones del filtro de suscripción (igual que en el Historial) ---------- */
+function subFilterOptions() {
+  const byStart = [...DB.subs].sort((a, b) => a.start.localeCompare(b.start));
+  return `<option value="">Todas las suscripciones</option>`
+    + (byStart.length ? `<optgroup label="Por suscripción (fecha de realización)">${byStart.map(x => `<option value="${esc(x.id)}">${esc(subLabel(x))}</option>`).join('')}</optgroup>` : '')
+    + `<optgroup label="Agrupado"><option value="any">Con suscripción activa</option><option value="none">Realizadas sin suscripción</option></optgroup>`;
+}
+
+/* ---------- Eventos ---------- */
+function statsStart() {
+  const S = UI.stats, save = () => { persistUI(); renderStats(); };
+  $$('#st-range [data-srange]').forEach(b => b.addEventListener('click', () => {
+    S.range = b.dataset.srange;
+    if (S.range === 'custom' && !S.from && !S.to) { const q = quickRange('month'); S.from = q.from; S.to = todayKey(); }
+    save();
+    if (S.range === 'custom') el('st-from').focus();
+  }));
+  ['from', 'to'].forEach(k => el('st-' + k).addEventListener('change', e => { S.range = 'custom'; S[k] = e.target.value; save(); }));
+  el('st-type').addEventListener('change', e => { S.type = e.target.value; save(); });
+  el('st-sub').addEventListener('change', e => { S.sub = e.target.value; save(); });
+  el('st-reset').addEventListener('click', () => { Object.assign(S, { range: 'all', from: '', to: '', type: '', sub: '' }); save(); });
+  // Pestañas: clic y flechas
+  const tabs = $$('#st-tabs [data-stab]');
+  tabs.forEach((b, i) => {
+    b.addEventListener('click', () => { S.tab = b.dataset.stab; save(); });
+    b.addEventListener('keydown', e => {
+      const d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+      let j = d ? (i + d + tabs.length) % tabs.length : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : -1;
+      if (j < 0) return;
+      e.preventDefault(); S.tab = tabs[j].dataset.stab; save(); tabs[j].focus();
+    });
+  });
+  const body = el('stats-body');
+  body.addEventListener('click', e => {
+    const s = e.target.closest('[data-ssort]');
+    if (s) {
+      const [id, k] = s.dataset.ssort.split(':'), cur = UI.stats.sort[id];
+      const num = s.closest('th').classList.contains('text-right');
+      S.sort[id] = cur && cur.k === k ? { k, d: cur.d === 'asc' ? 'desc' : 'asc' } : { k, d: num ? 'desc' : 'asc' };
+      save(); return;
+    }
+    const v = e.target.closest('[data-bookview]'); if (v) { S.bookView = v.dataset.bookview; save(); return; }
+    const dm = e.target.closest('[data-dim]'); if (dm) { UI.byDim = dm.dataset.dim; save(); return; }
+    const tb = e.target.closest('[data-timeby]'); if (tb) { S.timeBy = tb.dataset.timeby; save(); return; }
+    if (e.target.closest('[data-st-all]')) { el('st-reset').click(); return; }
+    const g = e.target.closest('[data-go]');
+    if (g) { try { goHistory(JSON.parse(g.dataset.go)); } catch {} }
+  });
+  body.addEventListener('change', e => {
+    const s = e.target.closest('[data-ssel]'); if (!s) return;
+    const [k, d] = s.value.split(':'); S.sort[s.dataset.ssel] = { k, d }; save();
+  });
+}
+
+/* ---------- Historial: filtros que llegan desde Estadísticas (se ven como etiquetas que se pueden quitar) ---------- */
+function renderHistChips() {
+  const box = el('f-chips'); if (!box) return;
+  const f = UI.filters, chips = [];
+  if (f.market) chips.push(['market', `Mercado: ${f.market === '__none' ? 'Sin mercado' : f.market}`]);
+  if (f.pfrom || f.pto) chips.push(['placed', `Realizadas: ${f.pfrom ? fmtDayLong(parseDay(f.pfrom)) : 'desde el principio'} → ${f.pto ? fmtDayLong(parseDay(f.pto)) : 'hoy'}`]);
+  if (f.wd === 0 || f.wd) chips.push(['wd', `Realizadas en ${WDAY_NAMES[+f.wd]}`]);
+  const back = UI.fromStats ? `<button type="button" class="btn-ghost" data-hist-back>← Volver a Estadísticas</button>` : '';
+  box.classList.toggle('hidden', !chips.length && !back);
+  box.innerHTML = back + chips.map(([k, t]) => `<button type="button" class="chip is-active gap-2" data-fchip="${k}" aria-label="Quitar filtro: ${esc(t)}"><span class="truncate">${esc(t)}</span><span aria-hidden="true">✕</span></button>`).join('');
+}
+function histChipsStart() {
+  const box = el('f-chips'); if (!box) return;
+  box.addEventListener('click', e => {
+    if (e.target.closest('[data-hist-back]')) { UI.fromStats = false; setTab('stats'); return; }
+    const c = e.target.closest('[data-fchip]'); if (!c) return;
+    const k = c.dataset.fchip;
+    if (k === 'market') UI.filters.market = '';
+    if (k === 'placed') { UI.filters.pfrom = ''; UI.filters.pto = ''; }
+    if (k === 'wd') UI.filters.wd = '';
+    UI.limit = 50; persistUI(); renderHistory();
+    const nx = box.querySelector('[data-fchip], [data-hist-back]'); if (nx) nx.focus();
+  });
 }
 
 // =========================================================
@@ -8739,14 +9295,13 @@ function bind() {
   el('f-sub').addEventListener('change', e => setF('sub', e.target.value));
   el('f-type').addEventListener('change', e => setF('type', e.target.value));
   let qT; el('f-q').addEventListener('input', e => { clearTimeout(qT); qT = setTimeout(() => setF('q', e.target.value), 160); });
-  el('f-reset').addEventListener('click', () => { UI.filters = { from: '', to: '', sport: '', book: '', status: '', q: '', sub: '', type: '' }; el('f-q').value = ''; UI.limit = 50; persistUI(); renderHistory(); });
+  el('f-reset').addEventListener('click', () => { UI.filters = BLANK_FILTERS(); UI.fromStats = false; el('f-q').value = ''; UI.limit = 50; persistUI(); renderHistory(); });
   $$('#f-quick [data-range]').forEach(b => b.addEventListener('click', () => { Object.assign(UI.filters, quickRange(b.dataset.range)); UI.limit = 50; persistUI(); renderHistory(); }));
   $$('[data-sort]').forEach(b => b.addEventListener('click', () => {
     const k = b.dataset.sort;
     UI.sort = UI.sort.key === k ? { key: k, dir: UI.sort.dir === 'asc' ? 'desc' : 'asc' } : { key: k, dir: k === 'match' ? 'asc' : 'desc' };
     persistUI(); renderTable(filtered());
   }));
-  $$('#dim-seg [data-dim]').forEach(b => b.addEventListener('click', () => { UI.byDim = b.dataset.dim; persistUI(); renderStats(); }));
   el('btn-export-filtered').addEventListener('click', () => exportCSV(filtered(), '_filtrado'));
   el('file-import').addEventListener('change', e => { handleImportFile(e.target.files[0]); e.target.value = ''; });
 
@@ -8780,6 +9335,8 @@ function init() {
   pwaStart();    // app instalable: botón «Instalar App», service worker y almacenamiento persistente
   shellStart();  // barra lateral, menú del móvil y tema
   profileStart(); // perfil: alias, foto y cambio de contraseña
+  statsStart();   // estadísticas: filtros, pestañas y tablas
+  histChipsStart(); // historial: etiquetas de filtros que llegan desde Estadísticas
   setTab(location.hash.slice(1) || 'panel');
   setInterval(() => {
     renderKPIs(); renderReminders(); renderRecent();
